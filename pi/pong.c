@@ -281,8 +281,8 @@ void set_state(int s)
 
 int loop_pong()
 {
-  if(rand()<(RAND_MAX/100)) btn_a_pin_hot = !btn_a_pin_hot;
-  if(rand()<(RAND_MAX/100)) btn_b_pin_hot = !btn_b_pin_hot;
+  if(rand()<(RAND_MAX/200)) btn_a_pin_hot = 0; else btn_a_pin_hot = 1;
+  if(rand()<(RAND_MAX/200)) btn_b_pin_hot = 0; else btn_b_pin_hot = 1;
 
   //read buttons
   if(btn_a_pin_hot) { btn_a_down_t++;   btn_a_up_t = 0; }
@@ -299,7 +299,7 @@ int loop_pong()
 
   state_t++; if(state_t == 0) state_t = -1; //keep at max
 
-  int delay_t = 30;
+  int delay_t = 10;
   //update
   switch(state)
   {
@@ -308,7 +308,7 @@ int loop_pong()
       int t = btn_a_down_t;
       if(btn_b_down_t < btn_a_down_t) t = btn_b_down_t;
       if(t >= STRIP_NUM_LEDS/2) set_state(STATE_PLAY);
-      delay_t = 30;
+      delay_t = 10;
     }
       break;
     case STATE_PLAY:
@@ -352,7 +352,7 @@ int loop_pong()
         if(zone_a_len < MIN_HIT_ZONE) zone_a_len = MIN_HIT_ZONE;
         if(zone_b_len < MIN_HIT_ZONE) zone_b_len = MIN_HIT_ZONE;
       }
-      delay_t = 1;
+      delay_t = 10;
     }
       break;
     case STATE_SCORE:

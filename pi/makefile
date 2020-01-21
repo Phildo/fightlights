@@ -16,3 +16,9 @@ $(OUT): $(SRC) $(HRC)
 upload: $(OUT)
 	./$(OUT)
 
+before:
+	ls -d /dev/* > before
+
+after:
+	ls -d /dev/* > after && diff before after && rm before after
+

@@ -131,7 +131,7 @@ int main(int argc, char **argv)
     compress_strip();
     push_buff();
 
-    for(int i = 0; i < 100000*delay; i++) ;
+    for(int i = 0; i < 200000*delay; i++) ;
     //usleep(1000*50);
     //sleep(1);
   }
