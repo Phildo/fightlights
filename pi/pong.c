@@ -38,37 +38,39 @@ int missile_b_hit_p;
 unsigned int missile_b_hit_t;
 
 #define STRIP_FADE_N 4
+nybl color_clear; //dynamic
 nybl color_a;
 nybl color_b;
 nybl color_ball;
 nybl color_zone;
-nybl color_clear;
+nybl color_blank;
 nybl color_a_fade[STRIP_FADE_N];
 nybl color_b_fade[STRIP_FADE_N];
 nybl color_ball_fade[STRIP_FADE_N];
 nybl color_red;
+nybl color_green;
 
 nybl strip_leds[STRIP_NUM_LEDS];
 
 //SYNC W/ ARDUINO
 void init_colors()
 {
-  color_ball_fade[0] = color_ball = 0x0;
-  color_ball_fade[1]               = 0x1;
-  color_ball_fade[2]               = 0x2;
-  color_ball_fade[3] = color_clear = 0x3;
-  color_a_fade[0]    = color_a     = 0x4;
-  color_a_fade[1]                  = 0x5;
-  color_a_fade[2]                  = 0x6;
-  color_a_fade[3]                  = 0x7;
-  color_b_fade[0]    = color_b     = 0x8;
-  color_b_fade[1]                  = 0x9;
-  color_b_fade[2]                  = 0xA;
-  color_b_fade[3]                  = 0xB;
-  color_zone                       = 0xC;
-  color_red                        = 0xD;
-  //color_?                          = 0xE;
-  //color_?                          = 0xF;
+  color_blank        = color_clear = 0x0;
+  color_ball_fade[0] = color_ball  = 0x1;
+  color_ball_fade[1]               = 0x2;
+  color_ball_fade[2]               = 0x3;
+  color_ball_fade[3]               = 0x4;
+  color_a_fade[0]    = color_a     = 0x5;
+  color_a_fade[1]                  = 0x6;
+  color_a_fade[2]                  = 0x7;
+  color_a_fade[3]                  = 0x8;
+  color_b_fade[0]    = color_b     = 0x9;
+  color_b_fade[1]                  = 0xA;
+  color_b_fade[2]                  = 0xB;
+  color_b_fade[3]                  = 0xC;
+  color_zone                       = 0xD;
+  color_red                        = 0xE;
+  color_green                      = 0xF;
 }
 
 void init_strip()
@@ -279,8 +281,8 @@ void set_state(int s)
 
 int loop_pong()
 {
-  if(rand()<(RAND_MAX/10)) btn_a_pin_hot = !btn_a_pin_hot;
-  if(rand()<(RAND_MAX/10)) btn_b_pin_hot = !btn_b_pin_hot;
+  if(rand()<(RAND_MAX/100)) btn_a_pin_hot = !btn_a_pin_hot;
+  if(rand()<(RAND_MAX/100)) btn_b_pin_hot = !btn_b_pin_hot;
 
   //read buttons
   if(btn_a_pin_hot) { btn_a_down_t++;   btn_a_up_t = 0; }
@@ -362,7 +364,7 @@ int loop_pong()
   }
 
   //draw
-  color_clear = color_ball_fade[STRIP_FADE_N-1];
+  color_clear = color_blank;
   //for(int i = 0; i < 10; i++) //used to test performance
   {
     switch(state)
