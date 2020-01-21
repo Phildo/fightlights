@@ -5,6 +5,7 @@
 
 #include "wiringserial.h"
 typedef char byte;
+typedef byte nybl; //"should" be constrained to half-byte, but no easy way to do that
 
 //strip constants
 #define STRIP_NUM_LEDS 300
@@ -12,24 +13,66 @@ typedef char byte;
 //sync w/ arduino
 #define FLUSH_TRIGGER "FLUSH"
 #define BAUD_RATE 1000000
+#define SERIAL_FILE "/dev/ttyUSB0"
 
 //serial
 int fp;
-char filename[256];
 byte *buff;
 int buff_n;
 
-int main(int argc, char **argv)
+nybl get_px(int index)
 {
-  fp = 0;
+  nybl lut = 0;
+  int i = index/2;
+  if(index%2 == 0)
+    lut = buff[i] & 0x0F;
+  else
+    lut = ((buff[i] & 0xF0) >> 4);
+  return lut;
+}
 
+void set_px(int index, nybl lut)
+{
+  int i = index/2;
+  if(index%2 == 0)
+  {
+    buff[i] &= 0xF0;
+    buff[i] |= (byte)lut;
+  }
+  else
+  {
+    buff[i] &= 0x0F;
+    buff[i] |= ((byte)lut << 4);
+  }
+}
+
+//
+
+void init_buff()
+{
   buff_n = STRIP_NUM_LEDS/2+strlen(FLUSH_TRIGGER);
   buff = (byte *)malloc(sizeof(byte)*buff_n+1);
   memset(buff,0,sizeof(byte)*buff_n+1);
   strcpy(buff+(buff_n-strlen(FLUSH_TRIGGER)),FLUSH_TRIGGER);
+}
 
+void init_ser()
+{
+  fp = 0;
+  fp = serialOpen(SERIAL_FILE, BAUD_RATE);
+  if(!fp)
+  {
+    printf("could not open serial file %s",SERIAL_FILE);
+    exit(1);
+  }
+}
+
+void init_strip()
+{
   for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
   {
+    buff[i] = (byte)rand();
+    /*
     switch(i%8)
     {
       case 0: buff[i] = 0x10; break;
@@ -41,42 +84,48 @@ int main(int argc, char **argv)
       case 6: buff[i] = 0xDC; break;
       case 7: buff[i] = 0xFE; break;
     }
+    */
   }
+}
 
-  if(argc == 2)
+void iterate_strip()
+{
+  for(int i = 0; i < STRIP_NUM_LEDS; i++)
+    set_px(i,(get_px(i)+1)%0x10);
+  /*
+  for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
   {
-    strcpy(filename,argv[1]);
-    fp = serialOpen(filename, BAUD_RATE);
+    switch(buff[i])
+    {
+      case 0x10: buff[i] = 0x32; break;
+      case 0x32: buff[i] = 0x54; break;
+      case 0x54: buff[i] = 0x76; break;
+      case 0x76: buff[i] = 0x98; break;
+      case 0x98: buff[i] = 0xBA; break;
+      case 0xBA: buff[i] = 0xDC; break;
+      case 0xDC: buff[i] = 0xFE; break;
+      case 0xFE: buff[i] = 0x10; break;
+    }
   }
-  while(!fp)
-  {
-    printf("file:"); fflush(stdout);
+  */
+}
 
-    if(fgets(filename, sizeof(filename), stdin) != filename) exit(1);
-    filename[strlen(filename)-1] = '\0';
-    fp = serialOpen(filename, BAUD_RATE);
-  }
+void push_buff()
+{
+  serialPutns(fp,buff,buff_n);
+  serialFlush(fp);
+}
 
-  int step = 0;
+int main(int argc, char **argv)
+{
+  init_buff();
+  init_ser();
+  init_strip();
+
   while(1)
   {
-    for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
-    {
-      switch(buff[i])
-      {
-        case 0x10: buff[i] = 0x32; break;
-        case 0x32: buff[i] = 0x54; break;
-        case 0x54: buff[i] = 0x76; break;
-        case 0x76: buff[i] = 0x98; break;
-        case 0x98: buff[i] = 0xBA; break;
-        case 0xBA: buff[i] = 0xDC; break;
-        case 0xDC: buff[i] = 0xFE; break;
-        case 0xFE: buff[i] = 0x10; break;
-      }
-    }
-
-    serialPutns(fp,buff,buff_n);
-    serialFlush(fp);
+    iterate_strip();
+    push_buff();
 
     //for(int i = 0; i < 16400000; i++) ;
     usleep(1000*50);
