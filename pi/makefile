@@ -11,7 +11,7 @@ arduino:
 	cd ..; make arduino
 
 $(OUT): $(SRC) $(HRC)
-	gcc $(SRC) -o $(OUT)
+	gcc $(SRC) -lwiringPi -o $(OUT)
 
 upload: $(OUT)
 	./$(OUT)

@@ -1,7 +1,7 @@
 #include <FastLED.h>
 
 //customize
-#define STRIP_BRIGHTNESS 32 //0-128
+#define STRIP_BRIGHTNESS 128 //0-128
 
 //arduino constants
 #define STRIP_LED_PIN 2
@@ -27,10 +27,30 @@ int trigger_i;
 
 CRGB dampen_color(CRGB in, int amt, int maxamt)
 {
-  int bright = 2; //takes away the lowest fractions (turns 1/10 into 2/11)
-  int r = in.r*(amt+bright)/(maxamt+bright);
-  int g = in.g*(amt+bright)/(maxamt+bright);
-  int b = in.b*(amt+bright)/(maxamt+bright);
+  int bright = 1; //takes away the lowest fractions (turns 1/10 into 2/11)
+  amt    += bright;
+  maxamt += bright;
+  int r = in.r*amt/maxamt;
+  int g = in.g*amt/maxamt;
+  int b = in.b*amt/maxamt;
+  return CRGB(r,g,b);
+}
+
+CRGB hdampen_color(CRGB in, int amt, int maxamt)
+{
+  int bright = 1; //takes away the lowest fractions (turns 1/10 into 2/11)
+  amt    += bright;
+  maxamt += bright;
+  amt = maxamt-amt;
+  int r = in.r;
+  int g = in.g;
+  int b = in.b;
+  for(int i = 0; i < amt; i++)
+  {
+    r/=3;
+    g/=3;
+    b/=3;
+  }
   return CRGB(r,g,b);
 }
 
@@ -49,17 +69,17 @@ void initlut()
 
   lut[0x0] = black;                      //color_clear
   lut[0x1] = white;                      //color_ball{,_fade[0]}
-  lut[0x2] = dampen_color(lut[0x1],2,3); //color_ball_fade[1]
-  lut[0x3] = dampen_color(lut[0x1],1,3); //color_ball_fade[2]
-  lut[0x4] = dampen_color(lut[0x1],0,3); //color_ball_fade[3]
+  lut[0x2] = hdampen_color(lut[0x1],2,3); //color_ball_fade[1]
+  lut[0x3] = hdampen_color(lut[0x1],1,3); //color_ball_fade[2]
+  lut[0x4] = hdampen_color(lut[0x1],0,3); //color_ball_fade[3]
   lut[0x5] = blue;                       //color_a{,_fade[0]}
-  lut[0x6] = dampen_color(lut[0x5],2,3); //color_a_fade[1]
-  lut[0x7] = dampen_color(lut[0x5],1,3); //color_a_fade[2]
-  lut[0x8] = dampen_color(lut[0x5],0,3); //color_a_fade[3]
+  lut[0x6] = hdampen_color(lut[0x5],2,3); //color_a_fade[1]
+  lut[0x7] = hdampen_color(lut[0x5],1,3); //color_a_fade[2]
+  lut[0x8] = hdampen_color(lut[0x5],0,3); //color_a_fade[3]
   lut[0x9] = red;                        //color_b{,_fade[0]}
-  lut[0xA] = dampen_color(lut[0x9],2,3); //color_b_fade[1]
-  lut[0xB] = dampen_color(lut[0x9],1,3); //color_b_fade[2]
-  lut[0xC] = dampen_color(lut[0x9],0,3); //color_b_fade[3]
+  lut[0xA] = hdampen_color(lut[0x9],2,3); //color_b_fade[1]
+  lut[0xB] = hdampen_color(lut[0x9],1,3); //color_b_fade[2]
+  lut[0xC] = hdampen_color(lut[0x9],0,3); //color_b_fade[3]
   lut[0xD] = pink;                       //color_zone
   lut[0xE] = red;                        //color_?
   lut[0xF] = green;                      //color_?

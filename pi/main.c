@@ -3,7 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "wiringserial.h"
+#include <wiringPi.h>
+#include <wiringSerial.h>
+#include "wiringSerialEXT.h"
 #include "params.h"
 #include "pong.h"
 
@@ -46,12 +48,23 @@ void init_buff()
   buff = (byte *)malloc(sizeof(byte)*buff_n+1);
   memset(buff,0,sizeof(byte)*buff_n+1);
   strcpy(buff+(buff_n-strlen(FLUSH_TRIGGER)),FLUSH_TRIGGER);
+}
 
+void init_ser()
+{
+  fp = 0;
+  fp = serialOpen(SERIAL_FILE, BAUD_RATE);
+  if(!fp)
+  {
+    printf("could not open serial file %s",SERIAL_FILE);
+    exit(1);
+  }
+}
+
+void show_lut()
+{
   for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
   {
-    buff[i] = 0;
-    //buff[i] = (byte)rand();
-    /*
     switch(i%8)
     {
       case 0: buff[i] = 0x10; break;
@@ -63,18 +76,6 @@ void init_buff()
       case 6: buff[i] = 0xDC; break;
       case 7: buff[i] = 0xFE; break;
     }
-    */
-  }
-}
-
-void init_ser()
-{
-  fp = 0;
-  fp = serialOpen(SERIAL_FILE, BAUD_RATE);
-  if(!fp)
-  {
-    printf("could not open serial file %s",SERIAL_FILE);
-    exit(1);
   }
 }
 
@@ -94,27 +95,11 @@ void iterate_strip()
 {
   for(int i = 0; i < STRIP_NUM_LEDS; i++)
     set_px(i,(get_px(i)+1)%0x10);
-  /*
-  for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
-  {
-    switch(buff[i])
-    {
-      case 0x10: buff[i] = 0x32; break;
-      case 0x32: buff[i] = 0x54; break;
-      case 0x54: buff[i] = 0x76; break;
-      case 0x76: buff[i] = 0x98; break;
-      case 0x98: buff[i] = 0xBA; break;
-      case 0xBA: buff[i] = 0xDC; break;
-      case 0xDC: buff[i] = 0xFE; break;
-      case 0xFE: buff[i] = 0x10; break;
-    }
-  }
-  */
 }
 
 void push_buff()
 {
-  serialPutns(fp,buff,buff_n);
+  serialPut(fp,buff,buff_n);
   serialFlush(fp);
 }
 
@@ -123,6 +108,12 @@ int main(int argc, char **argv)
   init_buff();
   init_ser();
   init_pong();
+
+/*
+  show_lut();
+  push_buff();
+  while(1) { push_buff(); sleep(1); }
+*/
 
   while(1)
   {
