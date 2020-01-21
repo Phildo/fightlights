@@ -2,6 +2,9 @@ OUT=a.out
 SRC=*.c
 HRC=*.h
 
+$(OUT): $(SRC) $(HRC)
+	gcc $(SRC) -lwiringPi -lpthread -o $(OUT)
+
 .PHONY:pi
 pi:
 	cd ..; make pi
@@ -9,9 +12,6 @@ pi:
 .PHONY:arduino
 arduino:
 	cd ..; make arduino
-
-$(OUT): $(SRC) $(HRC)
-	gcc $(SRC) -lwiringPi -o $(OUT)
 
 upload: $(OUT)
 	./$(OUT)

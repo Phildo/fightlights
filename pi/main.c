@@ -1,132 +1,119 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include <unistd.h>
 
-#include <wiringPi.h>
-#include <wiringSerial.h>
-#include "wiringSerialEXT.h"
 #include "params.h"
 #include "pong.h"
+#include "gpu.h"
+#include "io.h"
 
-//serial
-int fp;
-byte *buff;
-int buff_n;
+pthread_t pong_thread;
+pthread_t gpu_serial_thread;
+pthread_t io_serial_thread;
 
-nybl get_px(int index)
+pthread_mutex_t strip_lock;
+
+void *pong_thread_main(void *args)
 {
-  nybl lut = 0;
-  int i = index/2;
-  if(index%2 == 0)
-    lut = buff[i] & 0x0F;
-  else
-    lut = ((buff[i] & 0xF0) >> 4);
-  return lut;
-}
-
-void set_px(int index, nybl lut)
-{
-  int i = index/2;
-  if(index%2 == 0)
+  int go = 1;
+  while(go)
   {
-    buff[i] &= 0xF0;
-    buff[i] |= (byte)lut;
+    go = pong_do();
+    for(int i = 0; i < 200000; i++) ;
+    //usleep(1000*50);
+    //sleep(1);
   }
-  else
+  return 0;
+}
+
+void *gpu_serial_thread_main(void *args)
+{
+  int go = 1;
+  while(go)
   {
-    buff[i] &= 0x0F;
-    buff[i] |= ((byte)lut << 4);
+    go = gpu_do();
   }
+  return 0;
 }
 
-//
-
-void init_buff()
+void *io_serial_thread_main(void *args)
 {
-  buff_n = STRIP_NUM_LEDS/2+strlen(FLUSH_TRIGGER);
-  buff = (byte *)malloc(sizeof(byte)*buff_n+1);
-  memset(buff,0,sizeof(byte)*buff_n+1);
-  strcpy(buff+(buff_n-strlen(FLUSH_TRIGGER)),FLUSH_TRIGGER);
-}
-
-void init_ser()
-{
-  fp = 0;
-  fp = serialOpen(SERIAL_FILE, BAUD_RATE);
-  if(!fp)
+  int go = 0;
+  while(go)
   {
-    printf("could not open serial file %s",SERIAL_FILE);
-    exit(1);
+    go = io_do();
   }
+  return 0;
 }
 
-void show_lut()
+void init_threads()
 {
-  for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
+  int err;
+
+  if(pthread_mutex_init(&strip_lock, NULL) != 0)
+  { printf("can't init strip lock\n"); exit(-1); }
+
+  err = pthread_create(&pong_thread, NULL, &pong_thread_main, NULL);
+  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  err = pthread_create(&gpu_serial_thread, NULL, &gpu_serial_thread_main, NULL);
+  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  err = pthread_create(&io_serial_thread, NULL, &io_serial_thread_main, NULL);
+  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+}
+
+void kill_threads()
+{
+  pthread_join(io_serial_thread, NULL);
+  pthread_join(gpu_serial_thread, NULL);
+  pthread_join(pong_thread, NULL);
+
+  pthread_mutex_destroy(&strip_lock);
+}
+
+void multithread_main()
+{
+  pong_init();
+  gpu_init();
+  io_init();
+
+  init_threads();
+
+  while(1) ;
+
+  io_kill();
+  gpu_kill();
+  pong_kill();
+
+  kill_threads();
+}
+
+void singlethread_main()
+{
+  pong_init();
+  gpu_init();
+  io_init();
+
+  while(1)
   {
-    switch(i%8)
-    {
-      case 0: buff[i] = 0x10; break;
-      case 1: buff[i] = 0x32; break;
-      case 2: buff[i] = 0x54; break;
-      case 3: buff[i] = 0x76; break;
-      case 4: buff[i] = 0x98; break;
-      case 5: buff[i] = 0xBA; break;
-      case 6: buff[i] = 0xDC; break;
-      case 7: buff[i] = 0xFE; break;
-    }
+    pong_do();
+    gpu_do();
+    io_do();
+    for(int i = 0; i < 2000000; i++) ;
   }
-}
 
-void compress_strip()
-{
-  int buff_i  = 0;
-  int strip_i = 0;
-  while(strip_i < STRIP_NUM_LEDS)
-  {
-    buff[buff_i] = strip_leds[strip_i] | (strip_leds[strip_i+1] << 4);
-    buff_i++;
-    strip_i += 2;
-  }
-}
-
-void iterate_strip()
-{
-  for(int i = 0; i < STRIP_NUM_LEDS; i++)
-    set_px(i,(get_px(i)+1)%0x10);
-}
-
-void push_buff()
-{
-  serialPut(fp,buff,buff_n);
-  serialFlush(fp);
+  io_kill();
+  gpu_kill();
+  pong_kill();
 }
 
 int main(int argc, char **argv)
 {
-  init_buff();
-  init_ser();
-  init_pong();
-
-/*
-  show_lut();
-  push_buff();
-  while(1) { push_buff(); sleep(1); }
-*/
-
-  while(1)
-  {
-    //iterate_strip();
-    int delay = loop_pong();
-    compress_strip();
-    push_buff();
-
-    for(int i = 0; i < 200000*delay; i++) ;
-    //usleep(1000*50);
-    //sleep(1);
-  }
-
-  serialClose(fp);
+  #ifdef MULTITHREAD
+  multithread_main();
+  #else
+  singlethread_main();
+  #endif
 }
 

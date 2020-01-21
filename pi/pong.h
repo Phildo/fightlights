@@ -5,8 +5,9 @@
 
 extern nybl strip_leds[STRIP_NUM_LEDS];
 
-void init_pong();
-int loop_pong();
+void pong_init();
+int pong_do();
+void pong_kill();
 
 #endif //PONG_H
 

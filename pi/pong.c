@@ -12,6 +12,8 @@
 
 #define SCORE_T 100
 
+int pong_killed;
+
 int state;
 unsigned int state_t;
 int speed;
@@ -53,7 +55,7 @@ nybl color_green;
 nybl strip_leds[STRIP_NUM_LEDS];
 
 //SYNC W/ ARDUINO
-void init_colors()
+void pong_colors_init()
 {
   color_blank        = color_clear = 0x0;
   color_ball_fade[0] = color_ball  = 0x1;
@@ -73,7 +75,7 @@ void init_colors()
   color_green                      = 0xF;
 }
 
-void init_strip()
+void pong_strip_init()
 {
   int i = 0;
   for(; i < MAX_HIT_ZONE; i++)
@@ -207,11 +209,11 @@ void clear_lane()
 }
 
 void set_state(int s);
-void init_pong()
+void pong_init()
 {
   //strip
-  init_colors();
-  init_strip();
+  pong_colors_init();
+  pong_strip_init();
 
   btn_a_pin_hot = 0;
   btn_a_down_t = 0;
@@ -225,6 +227,8 @@ void init_pong()
   missile_b_hit_t = 0;
 
   set_state(STATE_SIGNUP);
+
+  pong_killed = 0;
 }
 
 void set_state(int s)
@@ -279,8 +283,10 @@ void set_state(int s)
   }
 }
 
-int loop_pong()
+int pong_do()
 {
+  if(pong_killed) return 0;
+
   if(rand()<(RAND_MAX/200)) btn_a_pin_hot = 0; else btn_a_pin_hot = 1;
   if(rand()<(RAND_MAX/200)) btn_b_pin_hot = 0; else btn_b_pin_hot = 1;
 
@@ -299,7 +305,6 @@ int loop_pong()
 
   state_t++; if(state_t == 0) state_t = -1; //keep at max
 
-  int delay_t = 10;
   //update
   switch(state)
   {
@@ -308,7 +313,6 @@ int loop_pong()
       int t = btn_a_down_t;
       if(btn_b_down_t < btn_a_down_t) t = btn_b_down_t;
       if(t >= STRIP_NUM_LEDS/2) set_state(STATE_PLAY);
-      delay_t = 10;
     }
       break;
     case STATE_PLAY:
@@ -352,13 +356,11 @@ int loop_pong()
         if(zone_a_len < MIN_HIT_ZONE) zone_a_len = MIN_HIT_ZONE;
         if(zone_b_len < MIN_HIT_ZONE) zone_b_len = MIN_HIT_ZONE;
       }
-      delay_t = 10;
     }
       break;
     case STATE_SCORE:
     {
       if(state_t > SCORE_T) set_state(STATE_SIGNUP);
-      delay_t = 10;
     }
       break;
   }
@@ -505,6 +507,11 @@ int loop_pong()
     }
   }
 
-  return delay_t;
+  return 1;
+}
+
+void pong_kill()
+{
+  pong_killed = 1;
 }
 
