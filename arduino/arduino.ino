@@ -1,7 +1,7 @@
 #include <FastLED.h>
 
 //customize
-#define STRIP_BRIGHTNESS 128 //0-128
+#define STRIP_BRIGHTNESS 64 //0-128
 
 //arduino constants
 #define STRIP_LED_PIN 2
@@ -25,24 +25,44 @@ byte *buff;
 int buff_i;
 int trigger_i;
 
+CRGB dampen_color(CRGB in, int amt, int maxamt)
+{
+  int bright = 2; //takes away the lowest fractions (turns 1/10 into 2/11)
+  int r = in.r*(amt+bright)/(maxamt+bright);
+  int g = in.g*(amt+bright)/(maxamt+bright);
+  int b = in.b*(amt+bright)/(maxamt+bright);
+  return CRGB(r,g,b);
+}
+
 void initlut()
 {
-  lut[0x0] = CRGB(0,0,0);
-  lut[0x1] = CRGB(0,20,0);
-  lut[0x2] = CRGB(0,40,0);
-  lut[0x3] = CRGB(0,60,0);
-  lut[0x4] = CRGB(20,80,0);
-  lut[0x5] = CRGB(40,100,0);
-  lut[0x6] = CRGB(60,120,0);
-  lut[0x7] = CRGB(80,140,20);
-  lut[0x8] = CRGB(100,160,40);
-  lut[0x9] = CRGB(120,180,60);
-  lut[0xA] = CRGB(140,200,80);
-  lut[0xB] = CRGB(160,220,100);
-  lut[0xC] = CRGB(180,240,120);
-  lut[0xD] = CRGB(200,0,140);
-  lut[0xE] = CRGB(220,0,160);
-  lut[0xF] = CRGB(240,0,180);
+  //helpful constants for color-picking
+  CRGB black      = CRGB(0x00,0x00,0x00); //CRGB::Black;
+  CRGB white      = CRGB(0xFF,0xFF,0xFF); //CRGB::White;
+  CRGB red        = CRGB(0xFF,0x00,0x00); //CRGB::Red;
+  CRGB green      = CRGB(0x00,0xFF,0x00); //CRGB::Green;
+  CRGB blue       = CRGB(0x00,0x00,0xFF); //CRGB::Blue;
+  CRGB yellow     = CRGB(0xFF,0xFF,0x00); //CRGB::Yellow;
+  CRGB light_blue = CRGB(0x4E,0xFD,0xEE);
+  CRGB dark_blue  = CRGB(0x3C,0x44,0xE8);
+  CRGB pink       = CRGB(0xF6,0x49,0xC7);
+
+  lut[0x0] = white;                      //color_ball{,_fade[0]}
+  lut[0x1] = dampen_color(lut[0x0],2,3); //color_ball_fade[1]
+  lut[0x2] = dampen_color(lut[0x0],1,3); //color_ball_fade[2]
+  lut[0x3] = black;                      //color_{clear,ball_fade[3]}
+  lut[0x4] = light_blue;                 //color_a{,_fade[0]}
+  lut[0x5] = dampen_color(lut[0x4],2,3); //color_a_fade[1]
+  lut[0x6] = dampen_color(lut[0x4],1,3); //color_a_fade[2]
+  lut[0x7] = dampen_color(lut[0x4],0,3); //color_a_fade[3]
+  lut[0x8] = light_blue;                 //color_b{,_fade[0]}
+  lut[0x9] = dampen_color(lut[0x8],2,3); //color_b_fade[1]
+  lut[0xA] = dampen_color(lut[0x8],1,3); //color_b_fade[2]
+  lut[0xB] = dampen_color(lut[0x8],0,3); //color_b_fade[3]
+  lut[0xC] = (((pink/2)/2)/2);           //color_zone
+  lut[0xD] = red;                        //color_?
+  lut[0xE] = green;                      //color_?
+  lut[0xF] = blue;                       //color_?
 }
 
 void buffToStrip()

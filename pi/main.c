@@ -4,16 +4,8 @@
 #include <unistd.h>
 
 #include "wiringserial.h"
-typedef char byte;
-typedef byte nybl; //"should" be constrained to half-byte, but no easy way to do that
-
-//strip constants
-#define STRIP_NUM_LEDS 300
-
-//sync w/ arduino
-#define FLUSH_TRIGGER "FLUSH"
-#define BAUD_RATE 1000000
-#define SERIAL_FILE "/dev/ttyUSB0"
+#include "params.h"
+#include "pong.h"
 
 //serial
 int fp;
@@ -54,24 +46,11 @@ void init_buff()
   buff = (byte *)malloc(sizeof(byte)*buff_n+1);
   memset(buff,0,sizeof(byte)*buff_n+1);
   strcpy(buff+(buff_n-strlen(FLUSH_TRIGGER)),FLUSH_TRIGGER);
-}
 
-void init_ser()
-{
-  fp = 0;
-  fp = serialOpen(SERIAL_FILE, BAUD_RATE);
-  if(!fp)
-  {
-    printf("could not open serial file %s",SERIAL_FILE);
-    exit(1);
-  }
-}
-
-void init_strip()
-{
   for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
   {
-    buff[i] = (byte)rand();
+    buff[i] = 0;
+    //buff[i] = (byte)rand();
     /*
     switch(i%8)
     {
@@ -85,6 +64,29 @@ void init_strip()
       case 7: buff[i] = 0xFE; break;
     }
     */
+  }
+}
+
+void init_ser()
+{
+  fp = 0;
+  fp = serialOpen(SERIAL_FILE, BAUD_RATE);
+  if(!fp)
+  {
+    printf("could not open serial file %s",SERIAL_FILE);
+    exit(1);
+  }
+}
+
+void compress_strip()
+{
+  int buff_i  = 0;
+  int strip_i = 0;
+  while(strip_i < STRIP_NUM_LEDS)
+  {
+    buff[buff_i] = strip_leds[strip_i] | (strip_leds[strip_i+1] << 4);
+    buff_i++;
+    strip_i += 2;
   }
 }
 
@@ -120,15 +122,17 @@ int main(int argc, char **argv)
 {
   init_buff();
   init_ser();
-  init_strip();
+  init_pong();
 
   while(1)
   {
-    iterate_strip();
+    //iterate_strip();
+    int delay = loop_pong();
+    compress_strip();
     push_buff();
 
-    //for(int i = 0; i < 16400000; i++) ;
-    usleep(1000*50);
+    for(int i = 0; i < 100000*delay; i++) ;
+    //usleep(1000*50);
     //sleep(1);
   }
 
