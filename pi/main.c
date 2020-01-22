@@ -5,6 +5,8 @@
 #include <unistd.h>
 
 #include "params.h"
+#include "util.h"
+#include "sync.h"
 #include "pong.h"
 #include "gpu.h"
 #include "io.h"
@@ -13,7 +15,24 @@ pthread_t pong_thread;
 pthread_t gpu_serial_thread;
 pthread_t io_serial_thread;
 
+//input
+pthread_mutex_t input_lock;
+
+int input_requested;
+pthread_cond_t input_consumed_cond;
+
+int io_ran_once;
+pthread_cond_t io_ran_once_cond;
+
+now_t t_tick;
+int io_hogged_core;
+pthread_cond_t io_forgiven_cond;
+
+//gpu
 pthread_mutex_t strip_lock;
+
+int strip_ready;
+pthread_cond_t strip_ready_cond;
 
 void *pong_thread_main(void *args)
 {
@@ -52,8 +71,20 @@ void init_threads()
 {
   int err;
 
+  if(pthread_mutex_init(&input_lock, NULL) != 0)
+  { printf("can't init input lock\n"); exit(-1); }
   if(pthread_mutex_init(&strip_lock, NULL) != 0)
   { printf("can't init strip lock\n"); exit(-1); }
+
+  strip_ready = 0;
+  pthread_cond_init(&strip_ready_cond,NULL);
+
+  input_requested = 0;
+  pthread_cond_init(&input_consumed_cond,NULL);
+  io_ran_once = 0;
+  pthread_cond_init(&io_ran_once_cond,NULL);
+  io_hogged_core = 0;
+  pthread_cond_init(&io_forgiven_cond,NULL);
 
   err = pthread_create(&pong_thread, NULL, &pong_thread_main, NULL);
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
@@ -69,11 +100,16 @@ void kill_threads()
   pthread_join(gpu_serial_thread, NULL);
   pthread_join(pong_thread, NULL);
 
+  pthread_mutex_destroy(&input_lock);
   pthread_mutex_destroy(&strip_lock);
+  pthread_cond_destroy(&strip_ready_cond);
+  pthread_cond_destroy(&io_ran_once_cond);
+  pthread_cond_destroy(&io_forgiven_cond);
 }
 
 void multithread_main()
 {
+  util_init();
   pong_init();
   gpu_init();
   io_init();
@@ -91,6 +127,7 @@ void multithread_main()
 
 void singlethread_main()
 {
+  util_init();
   pong_init();
   gpu_init();
   io_init();

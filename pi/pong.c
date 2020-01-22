@@ -1,5 +1,6 @@
 #include "pong.h"
 #include <stdlib.h>
+#include "sync.h"
 
 //logic
 #define MAX_HIT_ZONE 10 //measured in real LEDs
@@ -283,12 +284,39 @@ void set_state(int s)
   }
 }
 
+void pong_die();
+//public
+
 int pong_do()
 {
-  if(pong_killed) return 0;
+  if(pong_killed) { pong_die(); return 0; }
 
+  #ifdef MULTITHREAD
+  //if io hasn't run once since last tick, defer
+  input_requested = 1;
+  pthread_mutex_lock(&input_lock);
+  if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
+  if(!io_ran_once) pthread_cond_wait(&io_ran_once_cond,&input_lock);
+  if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
+  #endif
   if(rand()<(RAND_MAX/200)) btn_a_pin_hot = 0; else btn_a_pin_hot = 1;
   if(rand()<(RAND_MAX/200)) btn_b_pin_hot = 0; else btn_b_pin_hot = 1;
+  #ifdef MULTITHREAD
+  input_requested = 0;
+  io_ran_once = 0;
+  t_tick = now();
+  if(io_hogged_core)
+  {
+    io_hogged_core = 0;
+    pthread_mutex_unlock(&input_lock);
+    pthread_mutex_cond_signal(&io_forgiven_cond);
+  }
+  else
+  {
+    pthread_mutex_unlock(&input_lock);
+    pthread_mutex_cond_signal(&input_consumed_cond);
+  }
+  #endif
 
   //read buttons
   if(btn_a_pin_hot) { btn_a_down_t++;   btn_a_up_t = 0; }
@@ -365,6 +393,10 @@ int pong_do()
       break;
   }
 
+  #ifdef MULTITHREAD
+  pthread_mutex_lock(&strip_lock);
+  if(pong_killed) { pthread_mutex_unlock(&strip_lock); return 0; }
+  #endif
   //draw
   color_clear = color_blank;
   //for(int i = 0; i < 10; i++) //used to test performance
@@ -506,6 +538,11 @@ int pong_do()
         break;
     }
   }
+  strip_ready = 1;
+  #ifdef MULTITHREAD
+  pthread_mutex_unlock(&strip_lock);
+  pthread_cond_signal(&strip_ready_cond);
+  #endif
 
   return 1;
 }
@@ -513,5 +550,17 @@ int pong_do()
 void pong_kill()
 {
   pong_killed = 1;
+  #ifdef MULTITHREAD
+  //lie to get myself unstuck
+  pthread_mutex_lock(&input_lock);
+  io_ran_once = 1;
+  pthread_mutex_unlock(&input_lock);
+  pthread_cond_signal(&io_ran_once_cond);
+  #endif
+}
+
+void pong_die()
+{
+
 }
 

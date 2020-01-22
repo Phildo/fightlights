@@ -9,6 +9,8 @@
 #include "wiringSerialEXT.h"
 
 #include "params.h"
+#include "util.h"
+#include "sync.h"
 
 int io_killed;
 
@@ -46,6 +48,7 @@ void io_push()
   serialFlush(io_fp);
 }
 
+void io_die();
 //public
 
 void io_init()
@@ -57,15 +60,51 @@ void io_init()
 
 int io_do()
 {
-  if(io_killed) return 0;
+  if(io_killed) { io_die(); return 0; }
+  #ifdef MULTITHREAD
+  //if input is requested, or I've been hogging the core, AND I've already run once, defer
+  pthread_mutex_lock(&input_lock);
+  if(io_killed) { pthread_mutex_unlock(&input_lock); return 0;
+  if(io_ran_once)
+  {
+    while(input_requested) pthread_cond_wait(&input_consumed_cond,&input_lock);
+    if(io_killed) { pthread_mutex_unlock(&input_lock); return 0;
+
+    if(now()-t_tick > 8*ms_now_t) io_hogged_core = 1;
+    while(io_hogged_core) pthread_cond_wait(&io_forgiven_cond,&input_lock);
+    if(io_killed) { pthread_mutex_unlock(&input_lock); return 0;
+  }
+  #endif
   usleep(1000*1); //at least 1ms
   //io_push();
+  #ifdef MULTITHREAD
+  if(!io_ran_once)
+  {
+    io_ran_once = 1;
+    pthread_mutex_unlock(&input_lock);
+    pthread_cond_signal(&io_ran_once_cond);
+  }
+  else pthread_mutex_unlock(&input_lock);
+  #endif
   return 1;
 }
 
 void io_kill()
 {
   io_killed = 1;
+  #ifdef MULTITHREAD
+  //lie to get myself unstuck
+  pthread_mutex_lock(&input_lock);
+  input_requested = 0;
+  io_hogged_core = 0;
+  pthread_mutex_unlock(&input_unlock);
+  pthread_cond_signal(&input_consumed_cond);
+  pthread_cond_signal(&io_forgiven_cond);
+  #endif
+}
+
+void io_die()
+{
   if(io_fp) serialClose(io_fp);
   io_fp = 0;
   if(io_buff) free(io_buff);
