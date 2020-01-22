@@ -9,9 +9,13 @@ $(OUT): $(SRC) $(HRC)
 pi:
 	cd ..; make pi
 
-.PHONY:arduino
-arduino:
-	cd ..; make arduino
+.PHONY:gpu
+gpu:
+	cd ..; make gpu
+
+.PHONY:io
+io:
+	cd ..; make io
 
 upload: $(OUT)
 	./$(OUT)

@@ -8,9 +8,13 @@ BOARD_SUB = atmega328old
 
 include /usr/share/arduino/Arduino.mk
 
-.PHONY:arduino
-arduino:
-	cd ..; make arduino
+.PHONY:gpu
+gpu:
+	cd ..; make gpu
+
+.PHONY:io
+io:
+	cd ..; make io
 
 .PHONY:pi
 pi:
