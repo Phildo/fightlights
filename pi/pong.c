@@ -295,7 +295,6 @@ int pong_do()
   if(pong_killed) { pong_die(); return 0; }
 
   #ifdef MULTITHREAD
-  //if io hasn't run once since last tick, defer
   input_requested = 1;
   pthread_mutex_lock(&input_lock);
   if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }

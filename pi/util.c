@@ -2,13 +2,13 @@
 #include <time.h>
 #include <stdio.h>
 
-now_t s_now_t;
 now_t ms_now_t;
+now_t s_now_t;
 
 void util_init()
 {
-  s_now_t  = 1000000000U;
   ms_now_t = 1000000U;
+  s_now_t  = ms_now_t*1000U;
 }
 
 now_t now()

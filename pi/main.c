@@ -32,12 +32,28 @@ pthread_cond_t strip_ready_cond;
 void *pong_thread_main(void *args)
 {
   int go = 1;
+  now_t tick = now();
+  now_t test;
+  now_t delta;
+  now_t remaining;
+  int target_ms = 30;
   while(go)
   {
     go = pong_do();
-    for(int i = 0; i < 2000000; i++) ; //spin wait (TODO: replace w/ timing aware wait, maintain consistent framerate)
-    //usleep(1000*50);
-    //sleep(1);
+    test = now();
+    delta = test-tick;
+    while(delta < target_ms*ms_now_t)
+    {
+      remaining = (target_ms*ms_now_t-delta);
+      if(remaining > 3*ms_now_t) //buffer > usleep error
+      { //usleep
+        int sleep_ms = (remaining/ms_now_t)-1;
+        usleep(1000*sleep_ms);
+      }
+      test = now();
+      delta = test-tick;
+    }
+    tick = test;
   }
   return 0;
 }
