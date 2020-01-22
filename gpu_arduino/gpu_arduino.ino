@@ -94,15 +94,6 @@ void buffToStrip()
   }
 }
 
-void writestuff()
-{
-  //String msg = "this is a test";
-  //buff_n = msg.length();
-  //msg.getBytes(out_bytes,buff_n+1);
-  //out_bytes[buff_n] = '\0'; buff_n++;
-  //Serial.write(out_bytes,buff_n);
-}
-
 void setup()
 {
   delay(300); //power-up safety delay

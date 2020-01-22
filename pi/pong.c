@@ -26,11 +26,13 @@ long ball_p;
 int server;
 int serve;
 int bounce;
-unsigned int btn_a_pin_hot; //FAKED
+extern unsigned int io_btn_a_down;
+unsigned int btn_a_down;
 unsigned int btn_a_down_t;
 unsigned int btn_a_press_t;
 unsigned int btn_a_up_t;
-unsigned int btn_b_pin_hot; //FAKED
+extern unsigned int io_btn_b_down;
+unsigned int btn_b_down;
 unsigned int btn_b_down_t;
 unsigned int btn_b_press_t;
 unsigned int btn_b_up_t;
@@ -217,12 +219,12 @@ void pong_init()
   pong_colors_init();
   pong_strip_init();
 
-  btn_a_pin_hot = 0;
+  btn_a_down = 0;
   btn_a_down_t = 0;
   btn_a_press_t = 0;
   btn_a_up_t = 0;
   missile_a_hit_t = 0;
-  btn_b_pin_hot = 0;
+  btn_b_down = 0;
   btn_b_down_t = 0;
   btn_b_press_t = 0;
   btn_b_up_t = 0;
@@ -298,8 +300,10 @@ int pong_do()
   pthread_mutex_lock(&input_lock);
   if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
   #endif
-  if(rand()<(RAND_MAX/200)) btn_a_pin_hot = 0; else btn_a_pin_hot = 1;
-  if(rand()<(RAND_MAX/200)) btn_b_pin_hot = 0; else btn_b_pin_hot = 1;
+  btn_a_down = io_btn_a_down;
+  btn_b_down = io_btn_b_down;
+  //if(rand()<(RAND_MAX/200)) btn_a_down = 0; else btn_a_down = 1;
+  //if(rand()<(RAND_MAX/200)) btn_b_down = 0; else btn_b_down = 1;
   #ifdef MULTITHREAD
   input_requested = 0;
   pthread_mutex_unlock(&input_lock);
@@ -307,14 +311,14 @@ int pong_do()
   #endif
 
   //read buttons
-  if(btn_a_pin_hot) { btn_a_down_t++;   btn_a_up_t = 0; }
-  else              { btn_a_down_t = 0; btn_a_up_t++;   }
+  if(btn_a_down) { btn_a_down_t++;   btn_a_up_t = 0; }
+  else           { btn_a_down_t = 0; btn_a_up_t++;   }
   if(btn_a_press_t) btn_a_press_t++;
   if(btn_a_down_t == 1 && btn_a_hit_p == -1) btn_a_press_t = 1;
   if(missile_a_hit_t) missile_a_hit_t++;
 
-  if(btn_b_pin_hot) { btn_b_down_t++;   btn_b_up_t = 0; }
-  else              { btn_b_down_t = 0; btn_b_up_t++;   }
+  if(btn_b_down) { btn_b_down_t++;   btn_b_up_t = 0; }
+  else           { btn_b_down_t = 0; btn_b_up_t++;   }
   if(btn_b_press_t) btn_b_press_t++;
   if(btn_b_down_t == 1 && btn_b_hit_p == -1) btn_b_press_t = 1;
   if(missile_b_hit_t) missile_b_hit_t++;

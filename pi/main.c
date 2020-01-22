@@ -12,6 +12,7 @@
 #include "gpu.h"
 #include "io.h"
 
+//threading
 int main_killed;
 
 pthread_t pong_thread;
