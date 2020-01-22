@@ -36,7 +36,7 @@ void *pong_thread_main(void *args)
   now_t test;
   now_t delta;
   now_t remaining;
-  int target_ms = 30;
+  int target_ms = 16;
   while(go)
   {
     go = pong_do();

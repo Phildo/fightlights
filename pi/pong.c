@@ -44,6 +44,8 @@ int missile_b_hit_p;
 unsigned int missile_b_hit_t;
 
 #define STRIP_FADE_N 4
+#define VIRTUAL_STRIP_FADE_N_MUL 4
+#define VIRTUAL_STRIP_FADE_N (STRIP_FADE_N*VIRTUAL_STRIP_FADE_N_MUL)
 nybl color_clear; //dynamic
 nybl color_a;
 nybl color_b;
@@ -100,13 +102,13 @@ void draw_pulsed_zones()
   //a
   {
     int ceilhalf = (zone_a_len+1)/2;
-    if(btn_a_press_t && btn_a_press_t < STRIP_FADE_N)
+    if(btn_a_press_t && btn_a_press_t < VIRTUAL_STRIP_FADE_N)
     {
-      int term_one = STRIP_FADE_N*btn_a_press_t;
-      int term_two = STRIP_FADE_N*ceilhalf;
+      int term_one = VIRTUAL_STRIP_FADE_N*btn_a_press_t;
+      int term_two = VIRTUAL_STRIP_FADE_N*ceilhalf;
       for(int i = 0; i < ceilhalf; i++)
       {
-        int f = ((STRIP_FADE_N-1)-((i*term_one)/term_two)); //\_/
+        int f = ((VIRTUAL_STRIP_FADE_N-1)-((i*term_one)/term_two)); //\_/
         strip_leds[i]              = color_zone;
         strip_leds[zone_a_len-1-i] = color_zone;
       }
@@ -115,7 +117,7 @@ void draw_pulsed_zones()
     {
       for(int i = 0; i < ceilhalf; i++)
       {
-        int f = ((STRIP_FADE_N-1)-((i*STRIP_FADE_N)/ceilhalf)); //\_/
+        int f = ((VIRTUAL_STRIP_FADE_N-1)-((i*VIRTUAL_STRIP_FADE_N)/ceilhalf)); //\_/
         strip_leds[i]              = color_zone;
         strip_leds[zone_a_len-1-i] = color_zone;
       }
@@ -127,13 +129,13 @@ void draw_pulsed_zones()
   //b
   {
     int ceilhalf = (zone_b_len+1)/2;
-    if(btn_b_press_t && btn_b_press_t < STRIP_FADE_N)
+    if(btn_b_press_t && btn_b_press_t < VIRTUAL_STRIP_FADE_N)
     {
-      int term_one = STRIP_FADE_N*btn_b_press_t;
-      int term_two = STRIP_FADE_N*ceilhalf;
+      int term_one = VIRTUAL_STRIP_FADE_N*btn_b_press_t;
+      int term_two = VIRTUAL_STRIP_FADE_N*ceilhalf;
       for(int i = 0; i < ceilhalf; i++)
       {
-        int f = ((STRIP_FADE_N-1)-((i*term_one)/term_two)); //\_/
+        int f = ((VIRTUAL_STRIP_FADE_N-1)-((i*term_one)/term_two)); //\_/
         strip_leds[back(i)]              = color_zone;
         strip_leds[back(zone_b_len-1-i)] = color_zone;
       }
@@ -142,7 +144,7 @@ void draw_pulsed_zones()
     {
       for(int i = 0; i < ceilhalf; i++)
       {
-        int f = ((STRIP_FADE_N-1)-((i*STRIP_FADE_N)/ceilhalf)); //\_/
+        int f = ((VIRTUAL_STRIP_FADE_N-1)-((i*VIRTUAL_STRIP_FADE_N)/ceilhalf)); //\_/
         strip_leds[back(i)]              = color_zone;
         strip_leds[back(zone_b_len-1-i)] = color_zone;
       }
@@ -156,18 +158,18 @@ void draw_pulsed_lane()
 {
   //a
   {
-    if(btn_a_press_t && btn_a_press_t < STRIP_FADE_N)
+    if(btn_a_press_t && btn_a_press_t < VIRTUAL_STRIP_FADE_N)
     {
       int len = (STRIP_NUM_LEDS/2)-zone_a_len;
-      int term_one = (STRIP_FADE_N-1)*(STRIP_FADE_N-btn_a_press_t);
-      int term_two = len*STRIP_FADE_N;
+      int term_one = (VIRTUAL_STRIP_FADE_N-1)*(VIRTUAL_STRIP_FADE_N-btn_a_press_t);
+      int term_two = len*VIRTUAL_STRIP_FADE_N;
       for(int i = 0; i < len; i++)
       {
-        //((1-(i/len))*(1-(btn_a_press_t/STRIP_FADE_N)))*(STRIP_FADE_N-1) //gets algebra'd into:
-        //((len-i)*(STRIP_FADE_N-1)*(STRIP_FADE_N-btn_a_press_t))/(len*STRIP_FADE_N)
+        //((1-(i/len))*(1-(btn_a_press_t/VIRTUAL_STRIP_FADE_N)))*(VIRTUAL_STRIP_FADE_N-1) //gets algebra'd into:
+        //((len-i)*(VIRTUAL_STRIP_FADE_N-1)*(VIRTUAL_STRIP_FADE_N-btn_a_press_t))/(len*VIRTUAL_STRIP_FADE_N)
         //int f = (((len-i)*term_one)/term_two); //<- would be above eqn
         int f = (((len-i)*term_one)/term_two)-btn_a_press_t; //<- but I instead modified this, so it isn't _any_ of the eqns above
-        if(f >= 0) strip_leds[zone_a_len+i] = color_a_fade[f];
+        if(f >= 0) strip_leds[zone_a_len+i] = color_a_fade[f/VIRTUAL_STRIP_FADE_N_MUL];
         else       strip_leds[zone_a_len+i] = color_clear;
       }
     }
@@ -181,18 +183,18 @@ void draw_pulsed_lane()
 
   //b
   {
-    if(btn_b_press_t && btn_b_press_t < STRIP_FADE_N)
+    if(btn_b_press_t && btn_b_press_t < VIRTUAL_STRIP_FADE_N)
     {
       int len = (STRIP_NUM_LEDS/2)-zone_b_len;
-      int term_one = (STRIP_FADE_N-1)*(STRIP_FADE_N-btn_b_press_t);
-      int term_two = len*STRIP_FADE_N;
+      int term_one = (VIRTUAL_STRIP_FADE_N-1)*(VIRTUAL_STRIP_FADE_N-btn_b_press_t);
+      int term_two = len*VIRTUAL_STRIP_FADE_N;
       for(int i = 0; i < len; i++)
       {
-        //((1-(i/len))*(1-(btn_b_press_t/STRIP_FADE_N)))*(STRIP_FADE_N-1) //gets algebra'd into:
-        //((len-i)*(STRIP_FADE_N-1)*(STRIP_FADE_N-btn_b_press_t))/(len*STRIP_FADE_N)
+        //((1-(i/len))*(1-(btn_b_press_t/VIRTUAL_STRIP_FADE_N)))*(VIRTUAL_STRIP_FADE_N-1) //gets algebra'd into:
+        //((len-i)*(VIRTUAL_STRIP_FADE_N-1)*(VIRTUAL_STRIP_FADE_N-btn_b_press_t))/(len*VIRTUAL_STRIP_FADE_N)
         //int f = (((len-i)*term_one)/term_two); //<- would be above eqn
         int f = (((len-i)*term_one)/term_two)-btn_b_press_t; //<- but I instead modified this, so it isn't _any_ of the eqns above
-        if(f >= 0) strip_leds[back(zone_b_len+i)] = color_b_fade[f];
+        if(f >= 0) strip_leds[back(zone_b_len+i)] = color_b_fade[f/VIRTUAL_STRIP_FADE_N_MUL];
         else       strip_leds[back(zone_b_len+i)] = color_clear;
       }
     }
@@ -444,21 +446,21 @@ int pong_do()
       {
         int t = missile_a_hit_t;
         if(!missile_a_hit_t || (missile_a_hit_t && missile_b_hit_t && missile_a_hit_t > missile_b_hit_t)) t = missile_b_hit_t; //t == the lowest non-zero missile_[ab]_hit_t, or 0
-        if(t && t < STRIP_FADE_N) color_clear = color_ball_fade[STRIP_FADE_N-t];
+        if(t && t < VIRTUAL_STRIP_FADE_N) color_clear = color_ball_fade[(VIRTUAL_STRIP_FADE_N-t)/VIRTUAL_STRIP_FADE_N_MUL];
 
         draw_pulsed_zones();
         draw_pulsed_lane();
         if(bounce%3)
         {
-          if(serve == 1 && missile_a_hit_t < STRIP_FADE_N*2)
+          if(serve == 1 && missile_a_hit_t < VIRTUAL_STRIP_FADE_N*2)
           {
-            if(missile_a_hit_t > STRIP_FADE_N && (missile_a_hit_t/2)%2) strip_leds[zone_a_len] = color_red;
-            else                                                        strip_leds[zone_a_len] = color_zone;
+            if(missile_a_hit_t > VIRTUAL_STRIP_FADE_N && (missile_a_hit_t/2)%2) strip_leds[zone_a_len] = color_red;
+            else                                                                strip_leds[zone_a_len] = color_zone;
           }
-          if(serve == -1 && missile_b_hit_t < STRIP_FADE_N*2)
+          if(serve == -1 && missile_b_hit_t < VIRTUAL_STRIP_FADE_N*2)
           {
-            if(missile_b_hit_t > STRIP_FADE_N && (missile_b_hit_t/2)%2) strip_leds[back(zone_b_len)] = color_red;
-            else                                                        strip_leds[back(zone_b_len)] = color_zone;
+            if(missile_b_hit_t > VIRTUAL_STRIP_FADE_N && (missile_b_hit_t/2)%2) strip_leds[back(zone_b_len)] = color_red;
+            else                                                                strip_leds[back(zone_b_len)] = color_zone;
           }
         }
 
@@ -469,18 +471,18 @@ int pong_do()
         //particles
         int off;
         off = missile_a_hit_t/2;
-        if(missile_a_hit_t && off < STRIP_FADE_N*3)
+        if(missile_a_hit_t && off < VIRTUAL_STRIP_FADE_N*3)
         {
-          off = off%STRIP_FADE_N;
-          if(missile_a_hit_p-off >= 0)              strip_leds[missile_a_hit_p-off] = color_ball_fade[STRIP_FADE_N-1-off];
-          if(missile_a_hit_p+off <  STRIP_NUM_LEDS) strip_leds[missile_a_hit_p+off] = color_ball_fade[STRIP_FADE_N-1-off];
+          off = off%VIRTUAL_STRIP_FADE_N;
+          if(missile_a_hit_p-off >= 0)              strip_leds[missile_a_hit_p-off] = color_ball_fade[(VIRTUAL_STRIP_FADE_N-1-off)/VIRTUAL_STRIP_FADE_N_MUL];
+          if(missile_a_hit_p+off <  STRIP_NUM_LEDS) strip_leds[missile_a_hit_p+off] = color_ball_fade[(VIRTUAL_STRIP_FADE_N-1-off)/VIRTUAL_STRIP_FADE_N_MUL];
         }
         off = missile_b_hit_t/2;
-        if(missile_b_hit_t && off < STRIP_FADE_N*3)
+        if(missile_b_hit_t && off < VIRTUAL_STRIP_FADE_N*3)
         {
-          off = off%STRIP_FADE_N;
-          if(missile_b_hit_p-off >= 0)              strip_leds[missile_b_hit_p-off] = color_ball_fade[STRIP_FADE_N-1-off];
-          if(missile_b_hit_p+off <  STRIP_NUM_LEDS) strip_leds[missile_b_hit_p+off] = color_ball_fade[STRIP_FADE_N-1-off];
+          off = off%VIRTUAL_STRIP_FADE_N;
+          if(missile_b_hit_p-off >= 0)              strip_leds[missile_b_hit_p-off] = color_ball_fade[(VIRTUAL_STRIP_FADE_N-1-off)/VIRTUAL_STRIP_FADE_N_MUL];
+          if(missile_b_hit_p+off <  STRIP_NUM_LEDS) strip_leds[missile_b_hit_p+off] = color_ball_fade[(VIRTUAL_STRIP_FADE_N-1-off)/VIRTUAL_STRIP_FADE_N_MUL];
         }
 
         //draw ball
