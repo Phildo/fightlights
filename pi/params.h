@@ -1,3 +1,6 @@
+#ifndef PARAMS_H
+#define PARAMS_H
+
 typedef unsigned char byte;
 typedef byte nybl; //"should" be constrained to half-byte ("< 0x10"), but no easy way to do that
 
@@ -15,5 +18,7 @@ typedef byte nybl; //"should" be constrained to half-byte ("< 0x10"), but no eas
 #define IO_SERIAL_FILE "/dev/ttyUSB1"
 
 //uncomment for single threaded
-//#define MULTITHREAD
+#define MULTITHREAD
+
+#endif //PARAMS_H
 

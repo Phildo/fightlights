@@ -1,5 +1,6 @@
 #include "pong.h"
 #include <stdlib.h>
+#include <pthread.h>
 #include "sync.h"
 
 //logic
@@ -294,9 +295,11 @@ int pong_do()
   #ifdef MULTITHREAD
   //if io hasn't run once since last tick, defer
   input_requested = 1;
+  dovprintf("pong req input\n");
   pthread_mutex_lock(&input_lock);
+  dovprintf("pong take input\n");
   if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
-  if(!io_ran_once) pthread_cond_wait(&io_ran_once_cond,&input_lock);
+  while(!io_ran_once) { dovprintf("pong defer input no io"); pthread_cond_wait(&io_ran_once_cond,&input_lock); dovprintf("pong continue input (no io)"); }
   if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
   #endif
   if(rand()<(RAND_MAX/200)) btn_a_pin_hot = 0; else btn_a_pin_hot = 1;
@@ -308,13 +311,17 @@ int pong_do()
   if(io_hogged_core)
   {
     io_hogged_core = 0;
+    dovprintf("pong givaway input");
     pthread_mutex_unlock(&input_lock);
-    pthread_mutex_cond_signal(&io_forgiven_cond);
+    dovprintf("pong signals forgiveness");
+    pthread_cond_signal(&io_forgiven_cond);
   }
   else
   {
+    dovprintf("pong givaway input");
     pthread_mutex_unlock(&input_lock);
-    pthread_mutex_cond_signal(&input_consumed_cond);
+    dovprintf("pong signals consumption");
+    pthread_cond_signal(&input_consumed_cond);
   }
   #endif
 

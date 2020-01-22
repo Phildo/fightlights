@@ -40,7 +40,7 @@ void *pong_thread_main(void *args)
   while(go)
   {
     go = pong_do();
-    for(int i = 0; i < 200000; i++) ;
+    for(int i = 0; i < 2000000; i++) ; //spin wait (TODO: replace w/ timing aware wait, maintain consistent framerate)
     //usleep(1000*50);
     //sleep(1);
   }
@@ -59,7 +59,7 @@ void *gpu_serial_thread_main(void *args)
 
 void *io_serial_thread_main(void *args)
 {
-  int go = 0;
+  int go = 1;
   while(go)
   {
     go = io_do();
@@ -116,8 +116,9 @@ void multithread_main()
 
   init_threads();
 
-  while(1) ;
+  while(1) ; //forever
 
+  //will never get here (program actually halts by <C-c> or power off- OS in charge of cleaning up. kill logic entirely a learning exercise)
   io_kill();
   gpu_kill();
   pong_kill();
@@ -137,7 +138,7 @@ void singlethread_main()
     pong_do();
     gpu_do();
     io_do();
-    for(int i = 0; i < 2000000; i++) ;
+    for(int i = 0; i < 2000000; i++) ; //spin wait
   }
 
   io_kill();

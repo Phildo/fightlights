@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 
 #include <wiringSerial.h>
 #include "wiringSerialEXT.h"
@@ -53,7 +54,7 @@ void compress_strip()
   int strip_i = 0;
   #ifdef MULTITHREAD
   pthread_mutex_lock(&strip_lock);
-  if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return;
+  if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   while(!strip_ready) pthread_cond_wait(&strip_ready_cond,&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   #endif
