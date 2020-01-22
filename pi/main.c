@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <signal.h>
 #include <unistd.h>
 
 #include "params.h"
@@ -11,26 +12,19 @@
 #include "gpu.h"
 #include "io.h"
 
+int main_killed;
+
 pthread_t pong_thread;
 pthread_t gpu_serial_thread;
 pthread_t io_serial_thread;
 
 //input
 pthread_mutex_t input_lock;
-
 int input_requested;
 pthread_cond_t input_consumed_cond;
 
-int io_ran_once;
-pthread_cond_t io_ran_once_cond;
-
-now_t t_tick;
-int io_hogged_core;
-pthread_cond_t io_forgiven_cond;
-
 //gpu
 pthread_mutex_t strip_lock;
-
 int strip_ready;
 pthread_cond_t strip_ready_cond;
 
@@ -67,6 +61,21 @@ void *io_serial_thread_main(void *args)
   return 0;
 }
 
+void kill_main(int signum, siginfo_t *info, void *ptr) //catches ANY signal and kills self
+{
+  main_killed = 1;
+}
+
+void init_sigcatch()
+{
+  main_killed = 0;
+  static struct sigaction s;
+  memset(&s, 0, sizeof(s));
+  s.sa_sigaction = kill_main;
+  s.sa_flags = SA_SIGINFO;
+  sigaction(SIGTERM, &s, NULL);
+}
+
 void init_threads()
 {
   int err;
@@ -81,10 +90,6 @@ void init_threads()
 
   input_requested = 0;
   pthread_cond_init(&input_consumed_cond,NULL);
-  io_ran_once = 0;
-  pthread_cond_init(&io_ran_once_cond,NULL);
-  io_hogged_core = 0;
-  pthread_cond_init(&io_forgiven_cond,NULL);
 
   err = pthread_create(&pong_thread, NULL, &pong_thread_main, NULL);
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
@@ -103,12 +108,11 @@ void kill_threads()
   pthread_mutex_destroy(&input_lock);
   pthread_mutex_destroy(&strip_lock);
   pthread_cond_destroy(&strip_ready_cond);
-  pthread_cond_destroy(&io_ran_once_cond);
-  pthread_cond_destroy(&io_forgiven_cond);
 }
 
 void multithread_main()
 {
+  init_sigcatch();
   util_init();
   pong_init();
   gpu_init();
@@ -116,9 +120,8 @@ void multithread_main()
 
   init_threads();
 
-  while(1) ; //forever
+  while(!main_killed) ; //send SIGTERM to kill
 
-  //will never get here (program actually halts by <C-c> or power off- OS in charge of cleaning up. kill logic entirely a learning exercise)
   io_kill();
   gpu_kill();
   pong_kill();
@@ -128,12 +131,13 @@ void multithread_main()
 
 void singlethread_main()
 {
+  init_sigcatch();
   util_init();
   pong_init();
   gpu_init();
   io_init();
 
-  while(1)
+  while(!main_killed) //send SIGTERM to kill
   {
     pong_do();
     gpu_do();
