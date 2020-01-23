@@ -1,7 +1,9 @@
 #include <FastLED.h>
 
 //customize
-#define STRIP_BRIGHTNESS 255 //0-255
+#define STRIP_BRIGHTNESS 64 //0-255
+#define STRIP_MAX_BRIGHTNESS 256
+#define STRIP_MIN_BRIGHTNESS 16
 
 //arduino constants
 #define STRIP_LED_PIN 2
@@ -83,6 +85,16 @@ void initlut()
   lut[0xD] = pink;                       //color_zone
   lut[0xE] = red;                        //color_?
   lut[0xF] = green;                      //color_?
+
+  for(int i = 0; i < 0x10; i++)
+  {
+                 lut[i].r = min(lut[i].r,STRIP_MAX_BRIGHTNESS);
+    if(lut[i].r) lut[i].r = max(lut[i].r,STRIP_MIN_BRIGHTNESS);
+                 lut[i].g = min(lut[i].g,STRIP_MAX_BRIGHTNESS);
+    if(lut[i].g) lut[i].g = max(lut[i].g,STRIP_MIN_BRIGHTNESS);
+                 lut[i].b = min(lut[i].b,STRIP_MAX_BRIGHTNESS);
+    if(lut[i].b) lut[i].b = max(lut[i].b,STRIP_MIN_BRIGHTNESS);
+  }
 }
 
 void buffToStrip()
