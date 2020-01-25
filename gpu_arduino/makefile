@@ -3,7 +3,7 @@ ARDUINO_DIR = /usr/share/arduino
 USER_LIB_PATH = $(HOME)/sketchbook/libraries
 
 ARDUINO_PORT = /dev/ttyUSB0
-BOARD_TAG = nano328
+BOARD_TAG = uno #nano328
 BOARD_SUB = atmega328old
 
 include /usr/share/arduino/Arduino.mk
