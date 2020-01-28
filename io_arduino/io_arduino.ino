@@ -1,8 +1,8 @@
 #include <FastLED.h>
 
 //customize
-#define STRIP_BRIGHTNESS 4 //0-128
-#define STRIP_UPDATE_WAIT 100
+#define STRIP_BRIGHTNESS 255 //0-255
+#define STRIP_UPDATE_WAIT 10
 
 //arduino constants
   //strip
@@ -27,6 +27,7 @@
 CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
 long update_wait;
+int ring_state;
 
 //btns
 char btn_a_delta;
@@ -54,6 +55,7 @@ void setup()
   FastLED.setBrightness(STRIP_BRIGHTNESS);
   FastLED.show();
   update_wait = STRIP_UPDATE_WAIT;
+  ring_state = 0;
 
   //init btns
   pinMode(BTN_A_PIN,INPUT_PULLUP);
@@ -103,8 +105,12 @@ void loop()
   if(update_wait == 0)
   {
     update_wait = STRIP_UPDATE_WAIT;
+    //for(int i = 0; i < STRIP_NUM_LEDS; i++)
+      //strip_leds[i] = random(0xFFFFFF);
     for(int i = 0; i < STRIP_NUM_LEDS; i++)
-      strip_leds[i] = random(0xFFFFFF);
+      strip_leds[i] = 0x000000;
+    strip_leds[ring_state] = 0xFF0000;
+    ring_state = (ring_state+1)%STRIP_NUM_LEDS;
     FastLED.show();
   }
   FastLED.delay(1);
