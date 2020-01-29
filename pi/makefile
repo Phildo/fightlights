@@ -17,6 +17,10 @@ gpu:
 io:
 	cd ..; make io
 
+.PHONY:btn
+btn:
+	cd ..; make btn
+
 upload: $(OUT)
 	./$(OUT)
 
