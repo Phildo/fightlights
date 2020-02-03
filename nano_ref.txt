@@ -1,0 +1,13 @@
+1
+2 //interrupt
+3 //pwm- tone interferes //interrupt
+4
+5 //pwm
+6 //pwm
+7
+8
+9 //pwm
+10 //pwm
+11 //pwm- tone interferes
+12
+13 //out LED

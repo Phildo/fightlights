@@ -1,7 +1,7 @@
 #include <FastLED.h>
 
 //customize
-#define STRIP_BRIGHTNESS 4 //0-255
+#define STRIP_BRIGHTNESS 100 //0-255
 #define STRIP_MAX_BRIGHTNESS 256
 #define STRIP_MIN_BRIGHTNESS 0
 
