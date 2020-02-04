@@ -5,7 +5,7 @@
 #define CMD_DATA '1'
 
 //customize
-#define AID "GPU"
+#define AID "GPU\n"
 #define STRIP_BRIGHTNESS 100 //0-255
 #define STRIP_MAX_BRIGHTNESS 256
 #define STRIP_MIN_BRIGHTNESS 0
@@ -25,6 +25,7 @@
 
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
+/*
 CRGB lut[16];
 
 //data
@@ -110,6 +111,7 @@ void dbuffToStrip()
     strip_leds[i*2+1] = lut[buff[i]>>4];
   }
 }
+*/
 
 unsigned char serial_spinread(char *c)
 {
@@ -127,29 +129,33 @@ void cmd_whoru()
   Serial.write(AID);
 }
 
+int ctoi(char c)
+{
+  if(c >= '0' && c <= '9') return c-'0';
+  if(c >= 'A' && c <= 'F') return 10+c-'A';
+  return 0;
+}
+
 void cmd_data()
 {
   char d;
 
   unsigned int dcmd_n = 0;
-  for(int i = 0; i < 3; i++)
-  {
-    if(!serial_spinread(&d)) return;
-    dcmd_n *= 10;
-    dcmd_n += atoi(d);
-  }
+  if(!serial_spinread(&d)) return;
+  dcmd_n = ctoi(d);
 
   int strip_i = 0;
   while(dcmd_n) //perform commands
   {
+    Serial.write('0'+dcmd_n);
     if(!serial_spinread(&d)) return;
-    char n = d;
+    char n = ctoi(d);
     if(!serial_spinread(&d)) return;
-    char r = d;
+    char r = ctoi(d);
     if(!serial_spinread(&d)) return;
-    char g = d;
+    char g = ctoi(d);
     if(!serial_spinread(&d)) return;
-    char b = d;
+    char b = ctoi(d);
     CRGB color = CRGB(r,g,b);
     while(n)
     {
@@ -168,6 +174,7 @@ void setup()
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
+/*
   initlut();
 
   dbuff_s = STRIP_NUM_LEDS/2+strlen(FLUSH_TRIGGER);
@@ -176,10 +183,11 @@ void setup()
   strcpy((char *)buff+(dbuff_s-strlen(FLUSH_TRIGGER)),FLUSH_TRIGGER); //actually unnecessary
 
   for(int i = 0; i < STRIP_NUM_LEDS; i++) strip_leds[i] = lut[0];
+*/
 
-  FastLED.addLeds<STRIP_LED_TYPE, STRIP_LED_PIN, STRIP_COLOR_ORDER>(strip_leds, STRIP_NUM_LEDS).setCorrection( TypicalLEDStrip );
+  FastLED.addLeds<STRIP_LED_TYPE, STRIP_LED_PIN, STRIP_COLOR_ORDER>(strip_leds, STRIP_NUM_LEDS).setCorrection(TypicalLEDStrip);
   FastLED.setBrightness(STRIP_BRIGHTNESS);
-  buffToStrip();
+  //buffToStrip();
   FastLED.show();
 }
 
@@ -187,10 +195,10 @@ void loop()
 {
   char d;
   //get preamble
-  for(int i = 0; i < strlen(CMD_PREAMBLE))
+  for(int i = 0; i < strlen(CMD_PREAMBLE); i++)
   {
     if(!serial_spinread(&d)) return;
-    if(d != CMD_PREAMBLE[cmd_pre_i]) return;
+    if(d != CMD_PREAMBLE[i]) return;
   }
   //run command
   if(!serial_spinread(&d)) return;
