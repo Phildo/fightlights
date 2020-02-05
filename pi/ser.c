@@ -5,8 +5,7 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include <wiringSerial.h>
-#include "wiringSerialEXT.h"
+#include "wiringSerial.h"
 
 #include "params.h"
 #include "sync.h"
@@ -26,6 +25,21 @@ char *rsp;
 
 void ser_die();
 //public
+
+void ser_kill_fd(int *fd)
+{
+  serialClose(*fd);
+  #ifdef MULTITHREAD
+  pthread_mutex_lock(&ser_lock);
+  #endif
+  for(int i = 0; i < sizeof(file)/sizeof(char *); i++)
+    if(file_used[i] == *fd) file_used[i] = 0;
+  *fd = 0;
+  #ifdef MULTITHREAD
+  pthread_mutex_unlock(&ser_lock);
+  pthread_cond_signal(&ser_requested_cond);
+  #endif
+}
 
 void ser_init()
 {
@@ -70,40 +84,42 @@ int ser_do()
     if(fd) sleep(3);
     while(fd)
     {
-      serialPut(fd,whoru,cmd_len);
+      if(serialPut(fd,whoru,cmd_len) == -1) { serialClose(fd); fd = 0; break; }
       serialFlush(fd);
+      usleep(1000*10); //10ms
 
       int c;
       int rsp_i = 0;
       c = serialGetchar(fd);
-      while(c != -1)
+      while(c > -1)
       {
         rsp[rsp_i] = (char)c; rsp_i++;
         if(rsp_i == rsp_len) break;
         c = serialGetchar(fd);
       }
+      if(c == -1) { serialClose(fd); fd = 0; break; }
       serialFlush(fd);
 
-      if(!gpu_fd && strcmp(rsp,GPU_AID) != 0)
+      if(!gpu_fd && strcmp(rsp,GPU_AID) == 0)
       {
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
         #endif
         gpu_fd = fd;
-        file_used[i] = 1;
+        file_used[i] = fd;
         fd = 0;
         #ifdef MULTITHREAD
         pthread_mutex_unlock(&ser_lock);
         pthread_cond_signal(&gpu_ser_ready_cond);
         #endif
       }
-      else if(!mio_fd && strcmp(rsp,MIO_AID) != 0)
+      else if(!mio_fd && strcmp(rsp,MIO_AID) == 0)
       {
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
         #endif
         mio_fd = fd;
-        file_used[i] = 1;
+        file_used[i] = fd;
         fd = 0;
         #ifdef MULTITHREAD
         pthread_mutex_unlock(&ser_lock);
@@ -113,6 +129,7 @@ int ser_do()
     }
   }
   //if failed, will be triggered again
+  sleep(3);
 
   return 1;
 }

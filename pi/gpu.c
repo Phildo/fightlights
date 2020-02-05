@@ -5,11 +5,11 @@
 #include <string.h>
 #include <pthread.h>
 
-#include <wiringSerial.h>
-#include "wiringSerialEXT.h"
+#include "wiringSerial.h"
 
 #include "params.h"
 #include "sync.h"
+#include "ser.h"
 
 #define STRIP_MAX_BRIGHTNESS 256
 #define STRIP_MIN_BRIGHTNESS 0
@@ -119,13 +119,15 @@ void gpu_ser_init() //just wait to be given fd by ser
   if(gpu_killed) { pthread_mutex_unlock(&ser_lock); return; }
   while(!gpu_fd) pthread_cond_wait(&gpu_ser_ready_cond,&ser_lock);
   if(gpu_killed) { pthread_mutex_unlock(&ser_lock); return; }
+  //if we got here, we're good!
+  pthread_mutex_unlock(&ser_lock);
   #endif
 }
 
 void gpu_push()
 {
-  serialPut(gpu_fd,gpu_buff,gpu_buff_i);
-  serialFlush(gpu_fd);
+  if(serialPut(gpu_fd,gpu_buff,gpu_buff_i) == -1) ser_kill_fd(&gpu_fd);
+  else serialFlush(gpu_fd);
 }
 
 void compress_strip()

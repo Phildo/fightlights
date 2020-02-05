@@ -6,12 +6,12 @@
 #include <pthread.h>
 #include <unistd.h>
 
-#include <wiringSerial.h>
-#include "wiringSerialEXT.h"
+#include "wiringSerial.h"
 
 #include "params.h"
 #include "util.h"
 #include "sync.h"
+#include "ser.h"
 
 int mio_killed;
 
@@ -43,12 +43,14 @@ void mio_ser_init() //just wait to be given fd by ser
   if(mio_killed) { pthread_mutex_unlock(&ser_lock); return; }
   while(!mio_fd) pthread_cond_wait(&mio_ser_ready_cond,&ser_lock);
   if(mio_killed) { pthread_mutex_unlock(&ser_lock); return; }
+  //if we got here, we're good!
+  pthread_mutex_unlock(&ser_lock);
   #endif
 }
 
 void mio_push()
 {
-  serialPut(mio_fd,mio_buff,mio_buff_n);
+  if(serialPut(mio_fd,mio_buff,mio_buff_n) == -1) ser_kill_fd(&mio_fd);
   serialFlush(mio_fd);
 }
 
@@ -56,7 +58,8 @@ void mio_pull()
 {
   int c;
   c = serialGetchar(mio_fd);
-  if(c != -1)
+  if(c == -1) ser_kill_fd(&mio_fd);
+  else if(c > -1)
   {
     #ifdef MULTITHREAD
     pthread_mutex_lock(&input_lock);
