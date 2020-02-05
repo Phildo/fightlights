@@ -82,7 +82,7 @@ int ser_do()
         if(rsp_i == rsp_len) break;
         c = serialGetchar(fd);
       }
-      while(c != -1) c = serialGetchar(fd); //drain buffer
+      serialFlush(fd);
 
       if(!gpu_fd && strcmp(rsp,GPU_AID) != 0)
       {
