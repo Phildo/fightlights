@@ -25,7 +25,6 @@
 
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
-/*
 CRGB lut[16];
 
 //data
@@ -33,6 +32,10 @@ size_t dbuff_s;
 byte *dbuff;
 unsigned int dbuff_i;
 
+//cmdloop
+unsigned char cmd_trigger_i;
+
+/*
 CRGB dampen_color(CRGB in, int amt, int maxamt)
 {
   int bright = 1; //takes away the lowest fractions (turns 1/10 into 2/11)
@@ -129,32 +132,25 @@ void cmd_whoru()
   Serial.write(AID);
 }
 
-int ctoi(char c)
-{
-  if(c >= '0' && c <= '9') return c-'0';
-  if(c >= 'A' && c <= 'F') return 10+c-'A';
-  return 0;
-}
-
 void cmd_data()
 {
   char d;
 
   unsigned int dcmd_n = 0;
   if(!serial_spinread(&d)) return;
-  dcmd_n = ctoi(d);
+  dcmd_n = d;
 
   int strip_i = 0;
   while(dcmd_n) //perform commands
   {
     if(!serial_spinread(&d)) return;
-    char n = ctoi(d);
+    char n = d;
     if(!serial_spinread(&d)) return;
-    char r = ctoi(d);
+    char r = d;
     if(!serial_spinread(&d)) return;
-    char g = ctoi(d);
+    char g = d;
     if(!serial_spinread(&d)) return;
-    char b = ctoi(d);
+    char b = d;
     CRGB color = CRGB(r,g,b);
     while(n)
     {
@@ -165,6 +161,29 @@ void cmd_data()
   }
 
   FastLED.show();
+}
+
+void cmd_loop()
+{
+  char d;
+  if(Serial.available())
+  {
+    d = Serial.read();
+    if(d == CMD_PREAMBLE[cmd_trigger_i])
+    {
+      cmd_trigger_i++;
+      if(cmd_trigger_i == strlen(CMD_PREAMBLE))
+      {
+        if(!serial_spinread(&d)) { cmd_trigger_i = 0; return; }
+        switch(d)
+        {
+          case CMD_WHORU: cmd_whoru(); break;
+          case CMD_DATA:  cmd_data(); break;
+        }
+      }
+    }
+    else cmd_trigger_i = 0;
+  }
 }
 
 void setup()
@@ -188,23 +207,12 @@ void setup()
   FastLED.setBrightness(STRIP_BRIGHTNESS);
   //buffToStrip();
   FastLED.show();
+
+  cmd_trigger_i = 0;
 }
 
 void loop()
 {
-  char d;
-  //get preamble
-  for(int i = 0; i < strlen(CMD_PREAMBLE); i++)
-  {
-    if(!serial_spinread(&d)) return;
-    if(d != CMD_PREAMBLE[i]) return;
-  }
-  //run command
-  if(!serial_spinread(&d)) return;
-  switch(d)
-  {
-    case CMD_WHORU: cmd_whoru(); break;
-    case CMD_DATA:  cmd_data(); break;
-  }
+  cmd_loop();
 }
 

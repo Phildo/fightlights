@@ -17,6 +17,11 @@ typedef byte nybl; //"should" be constrained to half-byte ("< 0x10"), but no eas
 #define IO_BAUD_RATE 1000000
 #define IO_SERIAL_FILE "/dev/ttyUSB1"
 
+//CMD queue
+#define CMD_PREAMBLE "CMD_"
+#define CMD_WHORU '0'
+#define CMD_DATA '1'
+
 //uncomment for single threaded
 #define MULTITHREAD
 

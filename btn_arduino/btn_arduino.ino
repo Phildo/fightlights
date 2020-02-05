@@ -9,6 +9,16 @@
 #define END_T_MAX 300
 #define MIC_HOT_STAY 100
 
+//serial constants (sync w/ pi)
+#define BAUD_RATE 1000000
+#define AID "MIO\n"
+#define CMD_PREAMBLE "CMD_"
+#define T_CONSIDERED_DEAD 10000
+
+//enum
+#define CMD_WHORU '0'
+#define CMD_DATA '1'
+
 //player constants
 #define PLAYER_0_R 0xFF
 #define PLAYER_0_G 0x00
@@ -88,9 +98,79 @@ unsigned int mic_hot;
 volatile unsigned int im_mic_hot;
 void mic_interrupt() { im_mic_hot = MIC_HOT_STAY; }
 
+//cmdloop
+unsigned char cmd_trigger_i;
+
+unsigned char serial_spinread(char *c)
+{
+  unsigned int cmd_dead_t = 0;
+  while(cmd_dead_t < T_CONSIDERED_DEAD)
+  {
+    if(Serial.available()) { *c = Serial.read(); return 1; }
+    cmd_dead_t++;
+  }
+  return 0;
+}
+
+void cmd_data()
+{
+  char d;
+
+  unsigned int dcmd_n = 0;
+  if(!serial_spinread(&d)) return;
+  dcmd_n = d;
+
+  int strip_i = 0;
+  while(dcmd_n) //perform commands
+  {
+    if(!serial_spinread(&d)) return;
+    char n = d;
+    if(!serial_spinread(&d)) return;
+    char r = d;
+    if(!serial_spinread(&d)) return;
+    char g = d;
+    if(!serial_spinread(&d)) return;
+    char b = d;
+    //just don't do anything bc this func is currently bogus
+    dcmd_n--;
+  }
+}
+
+void cmd_whoru()
+{
+  Serial.write(AID);
+}
+
+void cmd_loop()
+{
+  char d;
+  if(Serial.available())
+  {
+    d = Serial.read();
+    if(d == CMD_PREAMBLE[cmd_trigger_i])
+    {
+      cmd_trigger_i++;
+      if(cmd_trigger_i == strlen(CMD_PREAMBLE))
+      {
+        if(!serial_spinread(&d)) { cmd_trigger_i = 0; return; }
+        switch(d)
+        {
+          case CMD_WHORU: cmd_whoru(); break;
+          case CMD_DATA:  cmd_data(); break;
+        }
+      }
+    }
+    else cmd_trigger_i = 0;
+  }
+}
+
 void setup()
 {
   delay(300); //power-up safety delay
+
+  //init serial
+  Serial.begin(BAUD_RATE);
+  while(!Serial) { ; }
 
   //out
   //pinMode(STRIP_LED_PIN,OUTPUT); //defer to FastLED
@@ -177,8 +257,8 @@ void loop()
     case MODE_SIGNUP:
     {
       //speaker
-      if(btn_down_t) tone(SPEAKER_PIN,1000+btn_down_t*20);
-      else noTone(SPEAKER_PIN);
+      //if(btn_down_t) tone(SPEAKER_PIN,1000+btn_down_t*20);
+      //else noTone(SPEAKER_PIN);
 
       //ring
       unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
@@ -238,5 +318,7 @@ void loop()
     }
     break;
   }
+
+  cmd_loop();
 }
 
