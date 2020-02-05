@@ -1,14 +1,18 @@
+.PHONY:arduino
+arduino:
+	./upload_all_arduinos.sh
+
 .PHONY:gpu
 gpu:
-	cd gpu_arduino; make upload
+	cd gpu_arduino; ARDUINO_PORT=/dev/ttyUSB* make upload
 
-.PHONY:io
-io:
-	cd io_arduino; make upload
+.PHONY:mio
+mio:
+	cd mio_arduino; ARDUINO_PORT=/dev/ttyUSB* make upload
 
 .PHONY:btn
 btn:
-	cd btn_arduino; make upload
+	cd btn_arduino; ARDUINO_PORT=/dev/ttyUSB* make upload
 
 .PHONY:pi
 pi:

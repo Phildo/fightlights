@@ -12,10 +12,10 @@ typedef byte nybl; //"should" be constrained to half-byte ("< 0x10"), but no eas
 #define GPU_BAUD_RATE 1000000
 #define GPU_SERIAL_FILE "/dev/ttyUSB0"
 
-//io arduino
-#define IO_FLUSH_TRIGGER "FLUSH"
-#define IO_BAUD_RATE 1000000
-#define IO_SERIAL_FILE "/dev/ttyUSB1"
+//mio arduino
+#define MIO_FLUSH_TRIGGER "FLUSH"
+#define MIO_BAUD_RATE 1000000
+#define MIO_SERIAL_FILE "/dev/ttyUSB1"
 
 //CMD queue
 #define CMD_PREAMBLE "CMD_"

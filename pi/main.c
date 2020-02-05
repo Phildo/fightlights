@@ -10,14 +10,14 @@
 #include "sync.h"
 #include "pong.h"
 #include "gpu.h"
-#include "io.h"
+#include "mio.h"
 
 //threading
 int main_killed;
 
 pthread_t pong_thread;
 pthread_t gpu_serial_thread;
-pthread_t io_serial_thread;
+pthread_t mio_serial_thread;
 
 //input
 pthread_mutex_t input_lock;
@@ -68,12 +68,12 @@ void *gpu_serial_thread_main(void *args)
   return 0;
 }
 
-void *io_serial_thread_main(void *args)
+void *mio_serial_thread_main(void *args)
 {
   int go = 1;
   while(go)
   {
-    go = io_do();
+    go = mio_do();
   }
   return 0;
 }
@@ -112,13 +112,13 @@ void init_threads()
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
   err = pthread_create(&gpu_serial_thread, NULL, &gpu_serial_thread_main, NULL);
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
-  err = pthread_create(&io_serial_thread, NULL, &io_serial_thread_main, NULL);
+  err = pthread_create(&mio_serial_thread, NULL, &mio_serial_thread_main, NULL);
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
 }
 
 void kill_threads()
 {
-  pthread_join(io_serial_thread, NULL);
+  pthread_join(mio_serial_thread, NULL);
   pthread_join(gpu_serial_thread, NULL);
   pthread_join(pong_thread, NULL);
 
@@ -133,13 +133,13 @@ void multithread_main()
   util_init();
   pong_init();
   gpu_init();
-  io_init();
+  mio_init();
 
   init_threads();
 
   while(!main_killed) ; //send SIGTERM to kill
 
-  io_kill();
+  mio_kill();
   gpu_kill();
   pong_kill();
 
@@ -152,17 +152,17 @@ void singlethread_main()
   util_init();
   pong_init();
   gpu_init();
-  io_init();
+  mio_init();
 
   while(!main_killed) //send SIGTERM to kill
   {
     pong_do();
     gpu_do();
-    io_do();
+    mio_do();
     for(int i = 0; i < 2000000; i++) ; //spin wait
   }
 
-  io_kill();
+  mio_kill();
   gpu_kill();
   pong_kill();
 }
