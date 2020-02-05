@@ -11,8 +11,6 @@
 #include "sync.h"
 #include "ser.h"
 
-#define STRIP_MAX_BRIGHTNESS 256
-#define STRIP_MIN_BRIGHTNESS 0
 typedef struct
 {
   byte r;
@@ -91,7 +89,7 @@ void lut_init()
 }
 
 int gpu_killed;
-extern nybl strip_leds[STRIP_NUM_LEDS];
+extern byte strip_leds[STRIP_NUM_LEDS];
 
 extern int gpu_fd;
 byte *gpu_buff;
@@ -130,8 +128,10 @@ void gpu_push()
   else serialFlush(gpu_fd);
 }
 
+static int HACK_I = 0;
 void compress_strip()
 {
+
   gpu_buff_i = strlen(CMD_PREAMBLE)+1+1; //preamble assumed already in place, also jump 'ncommands' byte (set at end)
   int strip_i = 0;
   byte n_commands = 0;
@@ -140,6 +140,12 @@ void compress_strip()
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   while(!strip_ready) pthread_cond_wait(&strip_ready_cond,&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
+
+  for(int i = 0; i < STRIP_NUM_LEDS; i++)
+    strip_leds[i] = 0; //clear
+  strip_leds[HACK_I] = 1; //something else
+  HACK_I = (HACK_I+1)%STRIP_NUM_LEDS;
+
   #endif
   while(strip_i < STRIP_NUM_LEDS)
   {
@@ -155,11 +161,6 @@ void compress_strip()
     gpu_buff[gpu_buff_i] = lut[color].g; gpu_buff_i++;
     gpu_buff[gpu_buff_i] = lut[color].b; gpu_buff_i++;
     n_commands++;
-    /*
-    gpu_buff[gpu_buff_i] = strip_leds[strip_i] | (strip_leds[strip_i+1] << 4);
-    gpu_buff_i++;
-    strip_i += 2;
-    */
   }
   gpu_buff[strlen(CMD_PREAMBLE)+1] = n_commands;
   gpu_buff[gpu_buff_i] = '\0';
@@ -167,58 +168,6 @@ void compress_strip()
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&strip_lock);
   #endif
-}
-
-//compressed buff accessors
-
-nybl get_px(int index)
-{
-  nybl lut = 0;
-  int i = index/2;
-  if(index%2 == 0)
-    lut = gpu_buff[i] & 0x0F;
-  else
-    lut = ((gpu_buff[i] & 0xF0) >> 4);
-  return lut;
-}
-
-void set_px(int index, nybl lut)
-{
-  int i = index/2;
-  if(index%2 == 0)
-  {
-    gpu_buff[i] &= 0xF0;
-    gpu_buff[i] |= (byte)lut;
-  }
-  else
-  {
-    gpu_buff[i] &= 0x0F;
-    gpu_buff[i] |= ((byte)lut << 4);
-  }
-}
-
-void show_lut()
-{
-  for(int i = 0; i < STRIP_NUM_LEDS/2; i++)
-  {
-    switch(i%8)
-    {
-      case 0: gpu_buff[i] = 0x10; break;
-      case 1: gpu_buff[i] = 0x32; break;
-      case 2: gpu_buff[i] = 0x54; break;
-      case 3: gpu_buff[i] = 0x76; break;
-      case 4: gpu_buff[i] = 0x98; break;
-      case 5: gpu_buff[i] = 0xBA; break;
-      case 6: gpu_buff[i] = 0xDC; break;
-      case 7: gpu_buff[i] = 0xFE; break;
-    }
-  }
-}
-
-void iterate_strip()
-{
-  for(int i = 0; i < STRIP_NUM_LEDS; i++)
-    set_px(i,(get_px(i)+1)%0x10);
 }
 
 void gpu_die();

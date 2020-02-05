@@ -46,19 +46,19 @@ unsigned int missile_b_hit_t;
 #define STRIP_FADE_N 4
 #define VIRTUAL_STRIP_FADE_N_MUL 4
 #define VIRTUAL_STRIP_FADE_N (STRIP_FADE_N*VIRTUAL_STRIP_FADE_N_MUL)
-nybl color_clear; //dynamic
-nybl color_a;
-nybl color_b;
-nybl color_ball;
-nybl color_zone;
-nybl color_blank;
-nybl color_a_fade[STRIP_FADE_N];
-nybl color_b_fade[STRIP_FADE_N];
-nybl color_ball_fade[STRIP_FADE_N];
-nybl color_red;
-nybl color_green;
+byte color_clear; //dynamic
+byte color_a;
+byte color_b;
+byte color_ball;
+byte color_zone;
+byte color_blank;
+byte color_a_fade[STRIP_FADE_N];
+byte color_b_fade[STRIP_FADE_N];
+byte color_ball_fade[STRIP_FADE_N];
+byte color_red;
+byte color_green;
 
-nybl strip_leds[STRIP_NUM_LEDS];
+byte strip_leds[STRIP_NUM_LEDS];
 
 //SYNC W/ ARDUINO
 void pong_colors_init()

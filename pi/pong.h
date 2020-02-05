@@ -3,7 +3,7 @@
 
 #include "params.h"
 
-extern nybl strip_leds[STRIP_NUM_LEDS];
+extern byte strip_leds[STRIP_NUM_LEDS];
 
 void pong_init();
 int pong_do();

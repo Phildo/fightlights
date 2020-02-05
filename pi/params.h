@@ -2,7 +2,6 @@
 #define PARAMS_H
 
 typedef unsigned char byte;
-typedef byte nybl; //"should" be constrained to half-byte ("< 0x10"), but no easy way to do that
 
 //strip constants
 #define STRIP_NUM_LEDS 300
