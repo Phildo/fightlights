@@ -158,6 +158,7 @@ void cmd_loop()
           case CMD_WHORU: cmd_whoru(); break;
           case CMD_DATA:  cmd_data(); break;
         }
+        cmd_trigger_i = 0;
       }
     }
     else cmd_trigger_i = 0;
