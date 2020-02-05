@@ -15,7 +15,7 @@
 
 int mio_killed;
 
-int mio_fp;
+extern int mio_fd;
 byte *mio_buff;
 int mio_buff_n;
 
@@ -24,7 +24,7 @@ unsigned int mio_btn_b_down;
 
 void mio_buff_init()
 {
-  mio_buff_n = STRIP_NUM_LEDS/2+strlen(MIO_FLUSH_TRIGGER);
+  mio_buff_n = strlen(CMD_PREAMBLE)+3; //very little data required
   mio_buff = (byte *)malloc(sizeof(byte)*mio_buff_n+1);
   if(!mio_buff)
   {
@@ -32,30 +32,30 @@ void mio_buff_init()
     exit(1);
   }
   memset(mio_buff,0,sizeof(byte)*mio_buff_n+1);
-  strcpy(mio_buff+(mio_buff_n-strlen(MIO_FLUSH_TRIGGER)),MIO_FLUSH_TRIGGER);
+  strcpy(mio_buff,CMD_PREAMBLE);
+  mio_buff[strlen(CMD_PREAMBLE)] = CMD_DATA;
 }
 
-void mio_ser_init()
+void mio_ser_init() //just wait to be given fd by ser
 {
-  mio_fp = 0;
-  mio_fp = serialOpen(MIO_SERIAL_FILE, MIO_BAUD_RATE);
-  if(!mio_fp)
-  {
-    printf("could not open mio serial file %s",MIO_SERIAL_FILE);
-    exit(1);
-  }
+  #ifdef MULTITHREAD
+  pthread_mutex_lock(&ser_lock);
+  if(mio_killed) { pthread_mutex_unlock(&ser_lock); return; }
+  while(!mio_fd) pthread_cond_wait(&mio_ser_ready_cond,&ser_lock);
+  if(mio_killed) { pthread_mutex_unlock(&ser_lock); return; }
+  #endif
 }
 
 void mio_push()
 {
-  serialPut(mio_fp,mio_buff,mio_buff_n);
-  serialFlush(mio_fp);
+  serialPut(mio_fd,mio_buff,mio_buff_n);
+  serialFlush(mio_fd);
 }
 
 void mio_pull()
 {
   int c;
-  c = serialGetchar(mio_fp);
+  c = serialGetchar(mio_fd);
   if(c != -1)
   {
     #ifdef MULTITHREAD
@@ -82,13 +82,13 @@ void mio_init()
   mio_btn_a_down = 0;
   mio_btn_b_down = 0;
   mio_buff_init();
-  mio_ser_init();
   mio_killed = 0;
 }
 
 int mio_do()
 {
   if(mio_killed) { mio_die(); return 0; }
+  if(!mio_fd) mio_ser_init();
   mio_pull();
   //mio_push();
   return 1;
@@ -103,13 +103,12 @@ void mio_kill()
   input_requested = 0;
   pthread_mutex_unlock(&input_lock);
   pthread_cond_signal(&input_consumed_cond);
+  pthread_cond_signal(&mio_ser_ready_cond);
   #endif
 }
 
 void mio_die()
 {
-  if(mio_fp) serialClose(mio_fp);
-  mio_fp = 0;
   if(mio_buff) free(mio_buff);
   mio_buff = 0;
   mio_buff_n = 0;

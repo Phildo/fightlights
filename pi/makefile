@@ -5,6 +5,9 @@ HRC=*.h
 $(OUT): $(SRC) $(HRC)
 	gcc $(SRC) -lwiringPi -lpthread -o $(OUT)
 
+run: $(OUT)
+	./$(OUT)
+
 .PHONY:pi
 pi:
 	cd ..; make pi

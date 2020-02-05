@@ -93,13 +93,14 @@ void lut_init()
 int gpu_killed;
 extern nybl strip_leds[STRIP_NUM_LEDS];
 
-int gpu_fp;
+extern int gpu_fd;
 byte *gpu_buff;
 int gpu_buff_n;
+int gpu_buff_i;
 
 void gpu_buff_init()
 {
-  gpu_buff_n = STRIP_NUM_LEDS/2+strlen(GPU_FLUSH_TRIGGER);
+  gpu_buff_n = strlen(CMD_PREAMBLE)+2+STRIP_NUM_LEDS*4; //assuming single-led RLE (would be VERY inefficient)
   gpu_buff = (byte *)malloc(sizeof(byte)*gpu_buff_n+1);
   if(!gpu_buff)
   {
@@ -107,35 +108,31 @@ void gpu_buff_init()
     exit(1);
   }
   memset(gpu_buff,0,sizeof(byte)*gpu_buff_n+1);
-  strcpy(gpu_buff+(gpu_buff_n-strlen(GPU_FLUSH_TRIGGER)),GPU_FLUSH_TRIGGER);
+  strcpy(gpu_buff,CMD_PREAMBLE);
+  gpu_buff[strlen(CMD_PREAMBLE)] = CMD_DATA;
 }
 
-void gpu_ser_init()
+void gpu_ser_init() //just wait to be given fd by ser
 {
-  gpu_fp = 0;
-  gpu_fp = serialOpen(GPU_SERIAL_FILE, GPU_BAUD_RATE);
-  if(!gpu_fp)
-  {
-    printf("could not open gpu serial file %s",GPU_SERIAL_FILE);
-    exit(1);
-  }
+  #ifdef MULTITHREAD
+  pthread_mutex_lock(&ser_lock);
+  if(gpu_killed) { pthread_mutex_unlock(&ser_lock); return; }
+  while(!gpu_fd) pthread_cond_wait(&gpu_ser_ready_cond,&ser_lock);
+  if(gpu_killed) { pthread_mutex_unlock(&ser_lock); return; }
+  #endif
 }
 
 void gpu_push()
 {
-  serialPut(gpu_fp,gpu_buff,gpu_buff_n);
-  serialFlush(gpu_fp);
+  serialPut(gpu_fd,gpu_buff,gpu_buff_i);
+  serialFlush(gpu_fd);
 }
 
 void compress_strip()
 {
-  int gpu_buff_i  = 0;
+  gpu_buff_i = strlen(CMD_PREAMBLE)+1+1; //preamble assumed already in place, also jump 'ncommands' byte (set at end)
   int strip_i = 0;
-  strcpy(gpu_buff,CMD_PREAMBLE); gpu_buff_i += strlen(CMD_PREAMBLE);
-  gpu_buff[gpu_buff_i] = CMD_DATA; gpu_buff_i++;
   byte n_commands = 0;
-  int n_commands_i = gpu_buff_i;
-  gpu_buff_i++;
   #ifdef MULTITHREAD
   pthread_mutex_lock(&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
@@ -162,7 +159,7 @@ void compress_strip()
     strip_i += 2;
     */
   }
-  gpu_buff[n_commands_i] = n_commands;
+  gpu_buff[strlen(CMD_PREAMBLE)+1] = n_commands;
   gpu_buff[gpu_buff_i] = '\0';
   strip_ready = 0;
   #ifdef MULTITHREAD
@@ -229,13 +226,13 @@ void gpu_init()
 {
   lut_init();
   gpu_buff_init();
-  gpu_ser_init();
   gpu_killed = 0;
 }
 
 int gpu_do()
 {
   if(gpu_killed) { gpu_die(); return 0; }
+  if(!gpu_fd) gpu_ser_init();
   compress_strip();
   //show_lut(); //uncomment to overwrite buff showing repeating LUT
   gpu_push();
@@ -251,13 +248,12 @@ void gpu_kill()
   strip_ready = 1;
   pthread_mutex_unlock(&strip_lock);
   pthread_cond_signal(&strip_ready_cond);
+  pthread_cond_signal(&gpu_ser_ready_cond);
   #endif
 }
 
 void gpu_die()
 {
-  if(gpu_fp) serialClose(gpu_fp);
-  gpu_fp = 0;
   if(gpu_buff) free(gpu_buff);
   gpu_buff = 0;
   gpu_buff_n = 0;

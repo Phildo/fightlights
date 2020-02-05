@@ -1,6 +1,6 @@
 #!/bin/bash
 
-if [ /dev/ttyUSB* == "/dev/ttyUSB*" ]; then echo "No serial ports found."; exit 1; fi
+if [ "$(echo /dev/ttyUSB*)" == '/dev/ttyUSB*' ]; then echo "No serial ports found."; exit 1; fi
 
 for i in /dev/ttyUSB*; do
   echo -n "checking $i... "

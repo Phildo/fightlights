@@ -26,12 +26,12 @@ long ball_p;
 int server;
 int serve;
 int bounce;
-extern unsigned int io_btn_a_down;
+extern unsigned int mio_btn_a_down;
 unsigned int btn_a_down;
 unsigned int btn_a_down_t;
 unsigned int btn_a_press_t;
 unsigned int btn_a_up_t;
-extern unsigned int io_btn_b_down;
+extern unsigned int mio_btn_b_down;
 unsigned int btn_b_down;
 unsigned int btn_b_down_t;
 unsigned int btn_b_press_t;
@@ -301,8 +301,8 @@ int pong_do()
   pthread_mutex_lock(&input_lock);
   if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
   #endif
-  btn_a_down = io_btn_a_down;
-  btn_b_down = io_btn_b_down;
+  btn_a_down = mio_btn_a_down;
+  btn_b_down = mio_btn_b_down;
   //if(rand()<(RAND_MAX/200)) btn_a_down = 0; else btn_a_down = 1;
   //if(rand()<(RAND_MAX/200)) btn_b_down = 0; else btn_b_down = 1;
   #ifdef MULTITHREAD

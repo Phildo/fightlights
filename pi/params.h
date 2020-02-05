@@ -7,15 +7,14 @@ typedef byte nybl; //"should" be constrained to half-byte ("< 0x10"), but no eas
 //strip constants
 #define STRIP_NUM_LEDS 300
 
-//gpu arduino
-#define GPU_FLUSH_TRIGGER "FLUSH"
-#define GPU_BAUD_RATE 1000000
-#define GPU_SERIAL_FILE "/dev/ttyUSB0"
+//serial
+#define BAUD_RATE 1000000
+#define DEV_PREAMBLE "/dev/ttyUSB"
 
-//mio arduino
-#define MIO_FLUSH_TRIGGER "FLUSH"
-#define MIO_BAUD_RATE 1000000
-#define MIO_SERIAL_FILE "/dev/ttyUSB1"
+//whoru
+#define GPU_AID "GPU"
+#define MIO_AID "MIO"
+#define BTN_AID "BTN" //not used!
 
 //CMD queue
 #define CMD_PREAMBLE "CMD_"
