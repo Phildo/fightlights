@@ -1,0 +1,37 @@
+void gotolbl(stackv lbl);
+
+typedef unsigned long long stackv;
+stackv crs[10]; //shouldn't need a larger stack... right?
+unsigned char crsptr;
+#define CRPUSH(c,o,v) cr_push((stackv)((void *)c))
+#define CRWRITE(c,o,v) cr_push((stackv)((void *)c),o)
+#define CRINC(c,o) cr_push((stackv)((void *)c)+1,o)
+#define CRDEREF(c,o) cr_deref(o)
+#define CRREAD(c,o) cr_read(o)
+#define CRPOP(c,o) cr_pop()
+void cr_push(stackv c) { coroutine_stack[coroutine_stackptr++] = c; }
+void cr_write(stackv c,int o) { coroutine_stack[coroutine_stackptr+o] = c; };
+stackv cr_read(int o) { return coroutine_stack[coroutine_stackptr+o]; };
+stackv *cr_deref(int o) { return &coroutine_stack[coroutine_stackptr+o]; };
+stackv cr_pop() { return coroutine_stack[coroutine_stackptr--]; }
+
+void crs_call(stackv lbl_from, stackv lbl_to, stackv arg)
+{
+  CRPUSH(lbl_from,-2,lbl_from);
+  CRPUSH(arg,-1,arg);
+  gotolbl(lbl_to);
+}
+
+void crs_return(stackv rval)
+{
+  CRPOP(arg,-1);
+  stackv rlbl = CRPOP(rlbl,-2);
+  CRPUSH(rval,-1,rval);
+  gotolbl(rlbl);
+}
+
+stackv crs_returned()
+{
+  return CRPOP(rval,-1);
+}
+

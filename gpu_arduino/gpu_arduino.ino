@@ -1,11 +1,6 @@
 #include <FastLED.h>
 
-//enum
-#define CMD_WHORU '0'
-#define CMD_DATA '1'
-
 //customize
-#define AID "GPU\n"
 #define STRIP_BRIGHTNESS 100 //0-255
 #define STRIP_MAX_BRIGHTNESS 256
 #define STRIP_MIN_BRIGHTNESS 0
@@ -19,9 +14,14 @@
 #define STRIP_COLOR_ORDER RGB
 
 //serial constants (sync w/ pi)
-#define CMD_PREAMBLE "CMD_"
 #define BAUD_RATE 1000000
+#define AID "GPU\n"
+#define CMD_PREAMBLE "CMD_"
 #define T_CONSIDERED_DEAD 10000
+
+//enum
+#define CMD_WHORU '0'
+#define CMD_DATA '1'
 
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
@@ -147,7 +147,6 @@ void cmd_data()
   int strip_i = 0;
   while(dcmd_n) //perform commands
   {
-    Serial.write('0'+dcmd_n);
     if(!serial_spinread(&d)) return;
     char n = ctoi(d);
     if(!serial_spinread(&d)) return;
