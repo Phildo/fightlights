@@ -65,8 +65,8 @@
 // in
 #define MIC_PIN 2
 #define BTN_PIN 3
-#define MIO_TX_PIN 4
 #define MIO_RX_PIN 5
+#define MIO_TX_PIN 4
 // out
 #define IO_PIN 8
 #define LED_PIN 9
@@ -87,8 +87,7 @@ CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
 
 //softser
-//SoftwareSerial mio_ser;
-SoftwareSerial mio_ser(MIO_TX_PIN,MIO_RX_PIN);
+SoftwareSerial mio_ser(MIO_RX_PIN,MIO_TX_PIN);
 
 //state
 unsigned char mode;
@@ -160,7 +159,8 @@ void setup()
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
-  //mio_ser = SoftwareSerial(MIO_TX_PIN,MIO_RX_PIN);
+  //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
+  //mio_ser = SoftwareSerial(MIO_RX_PIN,MIO_TX_PIN);
   mio_ser.begin(SOFT_BAUD_RATE);
 
   //out
@@ -217,6 +217,7 @@ void loop()
   {
     if(btn_down) digitalWrite(IO_PIN,HIGH);
     else         digitalWrite(IO_PIN,LOW);
+    mio_ser.write(btn_down);
   }
 
   char mode_delta = 0;

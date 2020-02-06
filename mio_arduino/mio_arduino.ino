@@ -3,11 +3,11 @@
 //arduino constants
   //btns
 #define BTN_A_PIN 8
-#define BTN_A_TX_PIN 2
 #define BTN_A_RX_PIN 6 //technically unnecessary?
+#define BTN_A_TX_PIN 2
 #define BTN_B_PIN 9
-#define BTN_B_TX_PIN 3
 #define BTN_B_RX_PIN 7 //technically unnecessary?
+#define BTN_B_TX_PIN 3
 
 //serial constants (sync w/ pi)
 #define BAUD_RATE 1000000
@@ -22,9 +22,11 @@
 #define CMD_WHORU '0'
 #define CMD_DATA '1'
 
+#define DEBUG_LED_PIN A2
+
 //softser
-SoftwareSerial btn_a_ser(BTN_A_TX_PIN,BTN_A_RX_PIN);
-SoftwareSerial btn_b_ser(BTN_B_TX_PIN,BTN_B_RX_PIN);
+SoftwareSerial btn_a_ser(BTN_A_RX_PIN,BTN_A_TX_PIN);
+//SoftwareSerial btn_b_ser(BTN_B_RX_PIN,BTN_B_TX_PIN);
 
 //btns
 char btn_a_delta;
@@ -56,7 +58,7 @@ void cmd_data()
 
   state = d;
   btn_a_ser.write(state);
-  btn_b_ser.write(state);
+  //btn_b_ser.write(state);
 }
 
 void cmd_whoru()
@@ -97,11 +99,11 @@ void setup()
   while(!Serial) { ; }
 
   //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
-  //btn_a_ser = SoftwareSerial(BTN_A_TX_PIN,BTN_A_RX_PIN);
-  //btn_b_ser = SoftwareSerial(BTN_B_TX_PIN,BTN_B_RX_PIN);
+  //btn_a_ser = SoftwareSerial(BTN_A_RX_PIN,BTN_A_TX_PIN);
+  ////btn_b_ser = SoftwareSerial(BTN_B_RX_PIN,BTN_B_TX_PIN);
 
   btn_a_ser.begin(SOFT_BAUD_RATE);
-  btn_b_ser.begin(SOFT_BAUD_RATE);
+  //btn_b_ser.begin(SOFT_BAUD_RATE);
 
   //init btns
   pinMode(BTN_A_PIN,INPUT);
@@ -113,18 +115,30 @@ void setup()
   btn_b_delta = 0;
   btn_b_down = 0;
 
+  pinMode(DEBUG_LED_PIN,OUTPUT);
+  digitalWrite(DEBUG_LED_PIN,LOW);
+
   cmd_trigger_i = 0;
 }
 
 void loop()
 {
   btn_a_delta = 0;
-  if(digitalRead(BTN_A_PIN)) { if(!btn_a_down) btn_a_delta =  1; btn_a_down = 1; }
-  else                       { if( btn_a_down) btn_a_delta = -1; btn_a_down = 0; }
+  //if(digitalRead(BTN_A_PIN)) { if(!btn_a_down) btn_a_delta =  1; btn_a_down = 1; }
+  //else                       { if( btn_a_down) btn_a_delta = -1; btn_a_down = 0; }
+  if(btn_a_ser.available()) { btn_a_down = btn_a_ser.read(); btn_a_delta = btn_a_down*2-1; };
+
+  if(btn_a_delta)
+  {
+    //if(btn_a_down) digitalWrite(DEBUG_LED_PIN,HIGH);
+    //else           digitalWrite(DEBUG_LED_PIN,LOW);
+    digitalWrite(DEBUG_LED_PIN,HIGH);
+  }
 
   btn_b_delta = 0;
-  if(digitalRead(BTN_B_PIN)) { if(!btn_b_down) btn_b_delta =  1; btn_b_down = 1; }
-  else                       { if( btn_b_down) btn_b_delta = -1; btn_b_down = 0; }
+  //if(digitalRead(BTN_B_PIN)) { if(!btn_b_down) btn_b_delta =  1; btn_b_down = 1; }
+  //else                       { if( btn_b_down) btn_b_delta = -1; btn_b_down = 0; }
+  //if(btn_b_ser.available()) { btn_b_down = btn_b_ser.read(); btn_b_delta = btn_b_down*2-1; };
 
   //relay btns to pi
   byte msg = 0x00;
