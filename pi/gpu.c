@@ -128,7 +128,6 @@ void gpu_push()
   else serialFlush(gpu_fd);
 }
 
-static int HACK_I = 0;
 void compress_strip()
 {
 
@@ -140,13 +139,16 @@ void compress_strip()
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   while(!strip_ready) pthread_cond_wait(&strip_ready_cond,&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
+  #endif
 
+/*
+  static int HACK_I = 0;
   for(int i = 0; i < STRIP_NUM_LEDS; i++)
     strip_leds[i] = 0; //clear
   strip_leds[HACK_I] = 1; //something else
   HACK_I = (HACK_I+1)%STRIP_NUM_LEDS;
+*/
 
-  #endif
   while(strip_i < STRIP_NUM_LEDS)
   {
     byte runlen = 1;

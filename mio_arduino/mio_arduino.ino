@@ -1,7 +1,13 @@
+#include <SoftwareSerial.h>
+
 //arduino constants
   //btns
 #define BTN_A_PIN 8
+#define BTN_A_TX_PIN 2
+#define BTN_A_RX_PIN 6 //technically unnecessary?
 #define BTN_B_PIN 9
+#define BTN_B_TX_PIN 3
+#define BTN_B_RX_PIN 7 //technically unnecessary?
 
 //serial constants (sync w/ pi)
 #define BAUD_RATE 1000000
@@ -9,15 +15,25 @@
 #define CMD_PREAMBLE "CMD_"
 #define T_CONSIDERED_DEAD 10000
 
+//softserial constants (sync w/btns)
+#define SOFT_BAUD_RATE 9600
+
 //enum
 #define CMD_WHORU '0'
 #define CMD_DATA '1'
+
+//softser
+SoftwareSerial btn_a_ser(BTN_A_TX_PIN,BTN_A_RX_PIN);
+SoftwareSerial btn_b_ser(BTN_B_TX_PIN,BTN_B_RX_PIN);
 
 //btns
 char btn_a_delta;
 unsigned char btn_a_down;
 char btn_b_delta;
 unsigned char btn_b_down;
+
+//game state
+char state;
 
 //cmdloop
 unsigned char cmd_trigger_i;
@@ -36,25 +52,11 @@ unsigned char serial_spinread(char *c)
 void cmd_data()
 {
   char d;
-
-  unsigned int dcmd_n = 0;
   if(!serial_spinread(&d)) return;
-  dcmd_n = d;
 
-  int strip_i = 0;
-  while(dcmd_n) //perform commands
-  {
-    if(!serial_spinread(&d)) return;
-    char n = d;
-    if(!serial_spinread(&d)) return;
-    char r = d;
-    if(!serial_spinread(&d)) return;
-    char g = d;
-    if(!serial_spinread(&d)) return;
-    char b = d;
-    //just don't do anything bc this func is currently bogus
-    dcmd_n--;
-  }
+  state = d;
+  btn_a_ser.write(state);
+  btn_b_ser.write(state);
 }
 
 void cmd_whoru()
@@ -94,6 +96,13 @@ void setup()
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
+  //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
+  //btn_a_ser = SoftwareSerial(BTN_A_TX_PIN,BTN_A_RX_PIN);
+  //btn_b_ser = SoftwareSerial(BTN_B_TX_PIN,BTN_B_RX_PIN);
+
+  btn_a_ser.begin(SOFT_BAUD_RATE);
+  btn_b_ser.begin(SOFT_BAUD_RATE);
+
   //init btns
   pinMode(BTN_A_PIN,INPUT);
   digitalWrite(BTN_A_PIN,LOW);
@@ -117,6 +126,7 @@ void loop()
   if(digitalRead(BTN_B_PIN)) { if(!btn_b_down) btn_b_delta =  1; btn_b_down = 1; }
   else                       { if( btn_b_down) btn_b_delta = -1; btn_b_down = 0; }
 
+  //relay btns to pi
   byte msg = 0x00;
   msg |= (btn_a_delta & 0x0F);
   msg |= (btn_b_delta << 4);

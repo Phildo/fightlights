@@ -1,4 +1,5 @@
 #include <FastLED.h>
+#include <SoftwareSerial.h>
 
 //customize
 #define PLAYER 1 //0 or 1
@@ -11,9 +12,12 @@
 
 //serial constants (sync w/ pi)
 #define BAUD_RATE 1000000
-#define AID "MIO\n"
+#define AID "BTN\n"
 #define CMD_PREAMBLE "CMD_"
 #define T_CONSIDERED_DEAD 10000
+
+//soft serial constants (sinc w/ mio)
+#define SOFT_BAUD_RATE 9600
 
 //enum
 #define CMD_WHORU '0'
@@ -61,10 +65,8 @@
 // in
 #define MIC_PIN 2
 #define BTN_PIN 3
-#define IO_TRANSITION_PIN 4
-#define MODE_0_PIN 5
-#define MODE_1_PIN 6
-#define MODE_DATA_PIN 7
+#define MIO_TX_PIN 4
+#define MIO_RX_PIN 5
 // out
 #define IO_PIN 8
 #define LED_PIN 9
@@ -83,6 +85,10 @@
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
+
+//softser
+//SoftwareSerial mio_ser;
+SoftwareSerial mio_ser(MIO_TX_PIN,MIO_RX_PIN);
 
 //state
 unsigned char mode;
@@ -114,26 +120,7 @@ unsigned char serial_spinread(char *c)
 
 void cmd_data()
 {
-  char d;
-
-  unsigned int dcmd_n = 0;
-  if(!serial_spinread(&d)) return;
-  dcmd_n = d;
-
-  int strip_i = 0;
-  while(dcmd_n) //perform commands
-  {
-    if(!serial_spinread(&d)) return;
-    char n = d;
-    if(!serial_spinread(&d)) return;
-    char r = d;
-    if(!serial_spinread(&d)) return;
-    char g = d;
-    if(!serial_spinread(&d)) return;
-    char b = d;
-    //just don't do anything bc this func is currently bogus
-    dcmd_n--;
-  }
+  //do nothing
 }
 
 void cmd_whoru()
@@ -173,6 +160,9 @@ void setup()
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
+  //mio_ser = SoftwareSerial(MIO_TX_PIN,MIO_RX_PIN);
+  mio_ser.begin(SOFT_BAUD_RATE);
+
   //out
   //pinMode(STRIP_LED_PIN,OUTPUT); //defer to FastLED
   pinMode(LED_PIN,OUTPUT);
@@ -182,10 +172,6 @@ void setup()
   //in
   pinMode(MIC_PIN,INPUT);
   pinMode(BTN_PIN,INPUT_PULLUP);
-  pinMode(IO_TRANSITION_PIN,INPUT_PULLUP);
-  pinMode(MODE_0_PIN,INPUT_PULLUP);
-  pinMode(MODE_1_PIN,INPUT_PULLUP);
-  pinMode(MODE_DATA_PIN,INPUT_PULLUP);
 
   /*
   //mic
@@ -234,20 +220,22 @@ void loop()
   }
 
   char mode_delta = 0;
-  io_transitioning = digitalRead(IO_TRANSITION_PIN);
-  if(!io_transitioning)
+  //TODO
+  while(mio_ser.available())
   {
-    unsigned char new_mode;
-    if(!digitalRead(MODE_0_PIN))      new_mode = MODE_SIGNUP;
-    else if(!digitalRead(MODE_1_PIN)) new_mode = MODE_PLAY;
-    else                              new_mode = MODE_END;
-    unsigned char new_mode_data;
-    if(!digitalRead(MODE_DATA_PIN)) new_mode_data = MODE_DATA_ME;
-    else                            new_mode_data = MODE_DATA_THEM;
-    if(new_mode != mode || new_mode_data != new_mode_data)
+    mode_delta = 1;
+    mode_t = 0;
+    char d = mio_ser.read();
+    switch(d & 0x3) //00000011
     {
-      mode_delta = 1;
-      mode_t = 0;
+      case 0: mode = MODE_SIGNUP; break;
+      case 1: mode = MODE_PLAY; break;
+      case 2: mode = MODE_END; break;
+    }
+    switch((d & 0x7) >> 2) //00000111 >> 2
+    {
+      case 0: mode_data = MODE_DATA_ME; break;
+      case 1: mode_data = MODE_DATA_THEM; break;
     }
   }
   mode_t++;
@@ -285,12 +273,6 @@ void loop()
         t_g = OPPO_G;
         t_b = OPPO_B;
         ring_state = (ring_state+1)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-      if(io_transitioning) //HACK
-      {
-        t_r = 100;
-        t_g = 100;
-        t_b = 100;
       }
 
       r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
