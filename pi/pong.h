@@ -3,7 +3,7 @@
 
 #include "params.h"
 
-extern byte strip_leds[STRIP_NUM_LEDS];
+volatile extern byte strip_leds[STRIP_NUM_LEDS];
 
 void pong_init();
 int pong_do();

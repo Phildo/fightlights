@@ -2,7 +2,7 @@
 #include <SoftwareSerial.h>
 
 //customize
-#define PLAYER 0 //0 or 1
+#define PLAYER 1 //0 or 1
 #define STRIP_BRIGHTNESS 120 //255 //0-255
 #define BUZZER_MAX 300
 #define SIGNUP_T_MAX 300
@@ -12,7 +12,11 @@
 
 //serial constants (sync w/ pi)
 #define BAUD_RATE 1000000
-#define AID "BTN\n"
+#if PLAYER == 0
+#define AID "BTN0\n"
+#else
+#define AID "BTN1\n"
+#endif
 #define CMD_PREAMBLE "CMD_"
 #define T_CONSIDERED_DEAD 10000
 

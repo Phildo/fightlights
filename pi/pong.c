@@ -210,7 +210,7 @@ void clear_lane()
     strip_leds[i] = color_clear;
 }
 
-void set_state(int s);
+void set_state(unsigned char s);
 void pong_init()
 {
   //strip

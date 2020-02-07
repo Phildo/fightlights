@@ -3,10 +3,10 @@
 //arduino constants
   //btns
 #define BTN_A_PIN 8
-#define BTN_A_RX_PIN 6 //technically unnecessary?
+#define BTN_A_RX_PIN 6
 #define BTN_A_TX_PIN 2
 #define BTN_B_PIN 9
-#define BTN_B_RX_PIN 7 //technically unnecessary?
+#define BTN_B_RX_PIN 7
 #define BTN_B_TX_PIN 3
 
 //serial constants (sync w/ pi)
@@ -98,9 +98,11 @@ void setup()
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
+  /*
   //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
-  //btn_a_ser = SoftwareSerial(BTN_A_RX_PIN,BTN_A_TX_PIN);
-  ////btn_b_ser = SoftwareSerial(BTN_B_RX_PIN,BTN_B_TX_PIN);
+  btn_a_ser = SoftwareSerial(BTN_A_RX_PIN,BTN_A_TX_PIN);
+  btn_b_ser = SoftwareSerial(BTN_B_RX_PIN,BTN_B_TX_PIN);
+  */
 
   btn_a_ser.begin(SOFT_BAUD_RATE);
   //btn_b_ser.begin(SOFT_BAUD_RATE);
