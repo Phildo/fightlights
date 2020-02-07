@@ -9,7 +9,8 @@ for i in /dev/ttyUSB*; do
     echo $AID
       if [ "$AID" == "GPU" ]; then cd gpu_arduino; ARDUINO_PORT=$i make upload; cd -;
     elif [ "$AID" == "MIO" ]; then cd mio_arduino; ARDUINO_PORT=$i make upload; cd -;
-    elif [ "$AID" == "BTN" ]; then cd btn_arduino; ARDUINO_PORT=$i make upload; cd -;
+    elif [ "$AID" == "BTN0" ]; then cd btn_arduino; ./set_player.sh 0; ARDUINO_PORT=$i make upload; cd -;
+    elif [ "$AID" == "BTN1" ]; then cd btn_arduino; ./set_player.sh 1; ARDUINO_PORT=$i make upload; cd -;
     else echo "not a project arduino."
     fi
   else

@@ -1,8 +1,8 @@
 #include <FastLED.h>
-#include <SoftwareSerial.h>
+#include <NeoSWSerial.h>
 
 //customize
-#define PLAYER 1 //0 or 1
+#define PLAYER 0 //0 or 1
 #define STRIP_BRIGHTNESS 120 //255 //0-255
 #define BUZZER_MAX 300
 #define SIGNUP_T_MAX 300
@@ -96,7 +96,7 @@ CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
 
 //softser
-SoftwareSerial mio_ser(MIO_RX_PIN,MIO_TX_PIN);
+NeoSWSerial mio_ser(MIO_RX_PIN,MIO_TX_PIN);
 
 //state
 unsigned char mode;
@@ -169,7 +169,7 @@ void setup()
   while(!Serial) { ; }
 
   //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
-  //mio_ser = SoftwareSerial(MIO_RX_PIN,MIO_TX_PIN);
+  //mio_ser = NeoSWSerial(MIO_RX_PIN,MIO_TX_PIN);
   mio_ser.begin(SOFT_BAUD_RATE);
 
   //out
@@ -226,27 +226,30 @@ void loop()
   {
     if(btn_down) digitalWrite(IO_PIN,HIGH);
     else         digitalWrite(IO_PIN,LOW);
-    mio_ser.write(btn_down);
+    for(int i = 0; i < 10; i++) //idempotent state, so just make sure it gets sent
+    {
+      mio_ser.write(btn_down);
+    }
   }
 
-  char mode_delta = 0;
   //TODO
   while(mio_ser.available())
   {
-    mode_delta = 1;
-    mode_t = 0;
+    unsigned char new_mode = 0;
+    unsigned char new_mode_data = 0;
     char d = mio_ser.read();
     switch(d & 0x3) //00000011
     {
-      case 0: mode = MODE_SIGNUP; break;
-      case 1: mode = MODE_PLAY; break;
-      case 2: mode = MODE_SCORE; break;
+      case 0: new_mode = MODE_SIGNUP; break;
+      case 1: new_mode = MODE_PLAY; break;
+      case 2: new_mode = MODE_SCORE; break;
     }
     switch((d & 0x7) >> 2) //00000111 >> 2
     {
-      case 0: mode_data = MODE_DATA_ME; break;
-      case 1: mode_data = MODE_DATA_THEM; break;
+      case 0: new_mode_data = MODE_DATA_ME; break;
+      case 1: new_mode_data = MODE_DATA_THEM; break;
     }
+    if(new_mode != mode || new_mode_data != mode_data) mode_t = 0;
   }
   mode_t++;
   if(mode_t > MODE_T_MAX) mode_t = MODE_T_MAX;

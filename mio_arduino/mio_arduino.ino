@@ -1,4 +1,5 @@
 #include <SoftwareSerial.h>
+#include <NeoSWSerial.h>
 
 //arduino constants
   //btns
@@ -25,8 +26,8 @@
 #define DEBUG_LED_PIN A2
 
 //softser
-SoftwareSerial btn_a_ser(BTN_A_RX_PIN,BTN_A_TX_PIN);
-//SoftwareSerial btn_b_ser(BTN_B_RX_PIN,BTN_B_TX_PIN);
+NeoSWSerial btn_a_ser(BTN_A_RX_PIN,BTN_A_TX_PIN);
+NeoSWSerial btn_b_ser(BTN_B_RX_PIN,BTN_B_TX_PIN);
 
 //btns
 char btn_a_delta;
@@ -57,8 +58,11 @@ void cmd_data()
   if(!serial_spinread(&d)) return;
 
   state = d;
-  btn_a_ser.write(state);
-  //btn_b_ser.write(state);
+  for(int i = 0; i < 10; i++) //idempotent state, so just make sure it gets sent
+  {
+    btn_a_ser.write(state);
+    btn_b_ser.write(state);
+  }
 }
 
 void cmd_whoru()
@@ -100,12 +104,12 @@ void setup()
 
   /*
   //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
-  btn_a_ser = SoftwareSerial(BTN_A_RX_PIN,BTN_A_TX_PIN);
-  btn_b_ser = SoftwareSerial(BTN_B_RX_PIN,BTN_B_TX_PIN);
+  btn_a_ser = NeoSWSerial(BTN_A_RX_PIN,BTN_A_TX_PIN);
+  btn_b_ser = NeoSWSerial(BTN_B_RX_PIN,BTN_B_TX_PIN);
   */
 
   btn_a_ser.begin(SOFT_BAUD_RATE);
-  //btn_b_ser.begin(SOFT_BAUD_RATE);
+  btn_b_ser.begin(SOFT_BAUD_RATE);
 
   //init btns
   pinMode(BTN_A_PIN,INPUT);
@@ -140,7 +144,7 @@ void loop()
   btn_b_delta = 0;
   //if(digitalRead(BTN_B_PIN)) { if(!btn_b_down) btn_b_delta =  1; btn_b_down = 1; }
   //else                       { if( btn_b_down) btn_b_delta = -1; btn_b_down = 0; }
-  //if(btn_b_ser.available()) { btn_b_down = btn_b_ser.read(); btn_b_delta = btn_b_down*2-1; };
+  if(btn_b_ser.available()) { btn_b_down = btn_b_ser.read(); btn_b_delta = btn_b_down*2-1; };
 
   //relay btns to pi
   byte msg = 0x00;
