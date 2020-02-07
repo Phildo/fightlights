@@ -19,8 +19,10 @@ extern int mio_fd;
 byte *mio_buff;
 int mio_buff_n;
 
-unsigned int mio_btn_a_down;
-unsigned int mio_btn_b_down;
+volatile extern unsigned char pong_state;
+unsigned char state;
+volatile unsigned char mio_btn_a_down;
+volatile unsigned char mio_btn_b_down;
 
 void mio_buff_init()
 {
@@ -50,8 +52,20 @@ void mio_ser_init() //just wait to be given fd by ser
 
 void mio_push()
 {
-  if(serialPut(mio_fd,mio_buff,mio_buff_n) == -1) ser_kill_fd(&mio_fd);
-  serialFlush(mio_fd);
+  if(state != pong_state)
+  {
+    state = pong_state;
+    unsigned char data_byte = 0;
+    switch(state)
+    {
+      case STATE_SIGNUP: data_byte = 0; break;
+      case STATE_PLAY:   data_byte = 1; break;
+      case STATE_SCORE:  data_byte = 2; break;
+    }
+    mio_buff[mio_buff_n-2] = data_byte;
+    if(serialPut(mio_fd,mio_buff,mio_buff_n-1) == -1) ser_kill_fd(&mio_fd);
+    serialFlush(mio_fd);
+  }
 }
 
 void mio_pull()
@@ -61,19 +75,10 @@ void mio_pull()
   if(c == -1) ser_kill_fd(&mio_fd);
   else if(c > -1)
   {
-    #ifdef MULTITHREAD
-    pthread_mutex_lock(&input_lock);
-    if(mio_killed) { pthread_mutex_unlock(&input_lock); return; }
-    while(input_requested) { pthread_cond_wait(&input_consumed_cond,&input_lock); }
-    if(mio_killed) { pthread_mutex_unlock(&input_lock); return; }
-    #endif
          if(c & 0x0E) mio_btn_a_down = 0;
     else if(c & 0x01) mio_btn_a_down = 1;
          if(c & 0xE0) mio_btn_b_down = 0;
     else if(c & 0x10) mio_btn_b_down = 1;
-    #ifdef MULTITHREAD
-    pthread_mutex_unlock(&input_lock);
-    #endif
   }
 }
 
@@ -84,6 +89,7 @@ void mio_init()
 {
   mio_btn_a_down = 0;
   mio_btn_b_down = 0;
+  state = 0;
   mio_buff_init();
   mio_killed = 0;
 }
@@ -93,7 +99,7 @@ int mio_do()
   if(mio_killed) { mio_die(); return 0; }
   if(!mio_fd) mio_ser_init();
   mio_pull();
-  //mio_push();
+  mio_push();
   return 1;
 }
 
@@ -102,10 +108,6 @@ void mio_kill()
   mio_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck
-  pthread_mutex_lock(&input_lock);
-  input_requested = 0;
-  pthread_mutex_unlock(&input_lock);
-  pthread_cond_signal(&input_consumed_cond);
   pthread_cond_signal(&mio_ser_ready_cond);
   #endif
 }

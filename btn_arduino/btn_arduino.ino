@@ -2,12 +2,12 @@
 #include <SoftwareSerial.h>
 
 //customize
-#define PLAYER 1 //0 or 1
+#define PLAYER 0 //0 or 1
 #define STRIP_BRIGHTNESS 120 //255 //0-255
 #define BUZZER_MAX 300
 #define SIGNUP_T_MAX 300
 #define PLAY_T_MAX 300
-#define END_T_MAX 300
+#define SCORE_T_MAX 300
 #define MIC_HOT_STAY 100
 
 //serial constants (sync w/ pi)
@@ -76,11 +76,16 @@
 //modes
 #define MODE_SIGNUP 0
 #define MODE_PLAY 1
-#define MODE_END 2
+#define MODE_SCORE 2
 #define MODE_DATA_ME 0
 #define MODE_DATA_THEM 1
 
 #define MODE_T_MAX 1000
+
+//visparams
+#define MODE_SIGNUP_SPEED 1
+#define MODE_PLAY_SPEED 3
+#define MODE_SCORE_SPEED 10
 
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
@@ -231,7 +236,7 @@ void loop()
     {
       case 0: mode = MODE_SIGNUP; break;
       case 1: mode = MODE_PLAY; break;
-      case 2: mode = MODE_END; break;
+      case 2: mode = MODE_SCORE; break;
     }
     switch((d & 0x7) >> 2) //00000111 >> 2
     {
@@ -247,8 +252,8 @@ void loop()
     case MODE_SIGNUP:
     {
       //speaker
-      //if(btn_down_t) tone(SPEAKER_PIN,1000+btn_down_t*20);
-      //else noTone(SPEAKER_PIN);
+      if(btn_down_t) tone(SPEAKER_PIN,1000+btn_down_t*20);
+      else noTone(SPEAKER_PIN);
 
       //ring
       unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
@@ -266,14 +271,14 @@ void loop()
         t_r = PLAYER_R;
         t_g = PLAYER_G;
         t_b = PLAYER_B;
-        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-1)%STRIP_NUM_VIRTUAL_LEDS;
+        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-MODE_SIGNUP_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
       }
       else
       {
         t_r = OPPO_R;
         t_g = OPPO_G;
         t_b = OPPO_B;
-        ring_state = (ring_state+1)%STRIP_NUM_VIRTUAL_LEDS;
+        ring_state = (ring_state+MODE_SIGNUP_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
       }
 
       r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
@@ -295,10 +300,96 @@ void loop()
     break;
     case MODE_PLAY:
     {
+      noTone(SPEAKER_PIN);
+
+      //ring
+      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
+
+      unsigned long t_r;
+      unsigned long t_g;
+      unsigned long t_b;
+      unsigned long r;
+      unsigned long g;
+      unsigned long b;
+      if(btn_down)
+      {
+        t_r = PLAYER_R;
+        t_g = PLAYER_G;
+        t_b = PLAYER_B;
+        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-MODE_PLAY_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
+      }
+      else
+      {
+        t_r = OPPO_R;
+        t_g = OPPO_G;
+        t_b = OPPO_B;
+        ring_state = (ring_state+MODE_PLAY_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
+      }
+
+      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
+      shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
+      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
+      strip_leds[target_i] = target_color;
+      strip_leds[off_i] = off_color;
+      FastLED.show();
+      FastLED.delay(1);
+      strip_leds[target_i] = 0x000000;
+      strip_leds[off_i]    = 0x000000;
     }
     break;
-    case MODE_END:
+    case MODE_SCORE:
     {
+      noTone(SPEAKER_PIN);
+
+      //ring
+      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
+
+      unsigned long t_r;
+      unsigned long t_g;
+      unsigned long t_b;
+      unsigned long r;
+      unsigned long g;
+      unsigned long b;
+      if(btn_down)
+      {
+        t_r = PLAYER_R;
+        t_g = PLAYER_G;
+        t_b = PLAYER_B;
+        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-MODE_SCORE_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
+      }
+      else
+      {
+        t_r = OPPO_R;
+        t_g = OPPO_G;
+        t_b = OPPO_B;
+        ring_state = (ring_state+MODE_SCORE_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
+      }
+
+      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
+      shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
+      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
+      strip_leds[target_i] = target_color;
+      strip_leds[off_i] = off_color;
+      FastLED.show();
+      FastLED.delay(1);
+      strip_leds[target_i] = 0x000000;
+      strip_leds[off_i]    = 0x000000;
     }
     break;
   }

@@ -8,15 +8,11 @@
 #define MIN_HIT_ZONE 4  //measured in real LEDs
 #define VIRTUAL_LEDS 800
 
-#define STATE_SIGNUP 0
-#define STATE_PLAY 1
-#define STATE_SCORE 2
-
 #define SCORE_T 100
 
 int pong_killed;
 
-int state;
+volatile unsigned char pong_state;
 unsigned int state_t;
 int speed;
 int zone_a_len;
@@ -26,13 +22,13 @@ long ball_p;
 int server;
 int serve;
 int bounce;
-extern unsigned int mio_btn_a_down;
-unsigned int btn_a_down;
+volatile extern unsigned char mio_btn_a_down;
+unsigned char btn_a_down;
 unsigned int btn_a_down_t;
 unsigned int btn_a_press_t;
 unsigned int btn_a_up_t;
-extern unsigned int mio_btn_b_down;
-unsigned int btn_b_down;
+volatile extern unsigned char mio_btn_b_down;
+unsigned char btn_b_down;
 unsigned int btn_b_down_t;
 unsigned int btn_b_press_t;
 unsigned int btn_b_up_t;
@@ -58,7 +54,7 @@ byte color_ball_fade[STRIP_FADE_N];
 byte color_red;
 byte color_green;
 
-byte strip_leds[STRIP_NUM_LEDS];
+volatile byte strip_leds[STRIP_NUM_LEDS];
 
 //SYNC W/ ARDUINO
 void pong_colors_init()
@@ -237,11 +233,11 @@ void pong_init()
   pong_killed = 0;
 }
 
-void set_state(int s)
+void set_state(unsigned char s)
 {
-  state = s;
+  pong_state = s;
   state_t = 0;
-  switch(state)
+  switch(pong_state)
   {
     case STATE_SIGNUP:
     {
@@ -296,20 +292,8 @@ int pong_do()
 {
   if(pong_killed) { pong_die(); return 0; }
 
-  #ifdef MULTITHREAD
-  input_requested = 1;
-  pthread_mutex_lock(&input_lock);
-  if(pong_killed) { pthread_mutex_unlock(&input_lock); return 0; }
-  #endif
   btn_a_down = mio_btn_a_down;
   btn_b_down = mio_btn_b_down;
-  //if(rand()<(RAND_MAX/200)) btn_a_down = 0; else btn_a_down = 1;
-  //if(rand()<(RAND_MAX/200)) btn_b_down = 0; else btn_b_down = 1;
-  #ifdef MULTITHREAD
-  input_requested = 0;
-  pthread_mutex_unlock(&input_lock);
-  pthread_cond_signal(&input_consumed_cond);
-  #endif
 
   //read buttons
   if(btn_a_down) { btn_a_down_t++;   btn_a_up_t = 0; }
@@ -327,7 +311,7 @@ int pong_do()
   state_t++; if(state_t == 0) state_t = -1; //keep at max
 
   //update
-  switch(state)
+  switch(pong_state)
   {
     case STATE_SIGNUP:
     {
@@ -394,7 +378,7 @@ int pong_do()
   color_clear = color_blank;
   //for(int i = 0; i < 10; i++) //used to test performance
   {
-    switch(state)
+    switch(pong_state)
     {
       case STATE_SIGNUP:
       {

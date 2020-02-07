@@ -27,11 +27,6 @@ pthread_cond_t ser_requested_cond;
 pthread_cond_t gpu_ser_ready_cond;
 pthread_cond_t mio_ser_ready_cond;
 
-//input
-pthread_mutex_t input_lock;
-int input_requested;
-pthread_cond_t input_consumed_cond;
-
 //gpu
 pthread_mutex_t strip_lock;
 int strip_ready;
@@ -118,8 +113,6 @@ void init_threads()
 
   if(pthread_mutex_init(&ser_lock, NULL) != 0)
   { printf("can't init ser lock\n"); exit(-1); }
-  if(pthread_mutex_init(&input_lock, NULL) != 0)
-  { printf("can't init input lock\n"); exit(-1); }
   if(pthread_mutex_init(&strip_lock, NULL) != 0)
   { printf("can't init strip lock\n"); exit(-1); }
 
@@ -129,9 +122,6 @@ void init_threads()
 
   strip_ready = 0;
   pthread_cond_init(&strip_ready_cond,NULL);
-
-  input_requested = 0;
-  pthread_cond_init(&input_consumed_cond,NULL);
 
   err = pthread_create(&pong_thread, NULL, &pong_thread_main, NULL);
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
@@ -150,10 +140,8 @@ void kill_threads()
   pthread_join(ser_thread, NULL);
   pthread_join(pong_thread, NULL);
 
-  pthread_mutex_destroy(&input_lock);
   pthread_mutex_destroy(&strip_lock);
   pthread_mutex_destroy(&ser_lock);
-  pthread_cond_destroy(&input_consumed_cond);
   pthread_cond_destroy(&strip_ready_cond);
   pthread_cond_destroy(&mio_ser_ready_cond);
   pthread_cond_destroy(&gpu_ser_ready_cond);

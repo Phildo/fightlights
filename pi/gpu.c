@@ -89,7 +89,7 @@ void lut_init()
 }
 
 int gpu_killed;
-extern byte strip_leds[STRIP_NUM_LEDS];
+volatile extern byte strip_leds[STRIP_NUM_LEDS];
 
 extern int gpu_fd;
 byte *gpu_buff;
