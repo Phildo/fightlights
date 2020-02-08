@@ -168,8 +168,7 @@ void setup()
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
-  //init softserial //ALREADY DONE- MUST BE DONE AT DECLARE TIME
-  //mio_ser = NeoSWSerial(MIO_RX_PIN,MIO_TX_PIN);
+  //softserial already init- begin
   mio_ser.begin(SOFT_BAUD_RATE);
 
   //out
@@ -232,7 +231,6 @@ void loop()
     }
   }
 
-  //TODO
   while(mio_ser.available())
   {
     unsigned char new_mode = 0;
