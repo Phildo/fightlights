@@ -1,5 +1,8 @@
 #include <FastLED.h>
+#define NOMIDDLEMAN
+#ifndef NOMIDDLEMAN
 #include <NeoSWSerial.h>
+#endif
 
 //customize
 #define PLAYER 0 //0 or 1
@@ -20,8 +23,10 @@
 #define CMD_PREAMBLE "CMD_"
 #define T_CONSIDERED_DEAD 10000
 
+#ifndef NOMIDDLEMAN
 //soft serial constants (sinc w/ mio)
 #define SOFT_BAUD_RATE 9600
+#endif
 
 //enum
 #define CMD_WHORU '0'
@@ -69,8 +74,10 @@
 // in
 #define MIC_PIN 2
 #define BTN_PIN 3
+#ifndef NOMIDDLEMAN
 #define MIO_RX_PIN 5
 #define MIO_TX_PIN 4
+#endif
 // out
 #define IO_PIN 8
 #define LED_PIN 9
@@ -95,14 +102,15 @@
 CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
 
+#ifndef NOMIDDLEMAN
 //softser
 NeoSWSerial mio_ser(MIO_RX_PIN,MIO_TX_PIN);
+#endif
 
 //state
 unsigned char mode;
 unsigned int mode_t;
 unsigned char mode_data;
-unsigned char io_transitioning;
 unsigned int ring_state;
 //btn
 unsigned char btn_down;
@@ -126,9 +134,31 @@ unsigned char serial_spinread(char *c)
   return 0;
 }
 
+void set_mode_from_char(char d)
+{
+  unsigned char new_mode = 0;
+  unsigned char new_mode_data = 0;
+  switch(d & 0x3) //00000011
+  {
+    case 0: new_mode = MODE_SIGNUP; break;
+    case 1: new_mode = MODE_PLAY; break;
+    case 2: new_mode = MODE_SCORE; break;
+  }
+  switch((d & 0x7) >> 2) //00000111 >> 2
+  {
+    case 0: new_mode_data = MODE_DATA_ME; break;
+    case 1: new_mode_data = MODE_DATA_THEM; break;
+  }
+  if(new_mode != mode || new_mode_data != mode_data) mode_t = 0;
+  mode = new_mode;
+  mode_data = new_mode_data;
+}
+
 void cmd_data()
 {
-  //do nothing
+  char d;
+  if(!serial_spinread(&d)) return;
+  set_mode_from_char(d);
 }
 
 void cmd_whoru()
@@ -164,12 +194,18 @@ void setup()
 {
   delay(300); //power-up safety delay
 
+  //kill debug LED
+  pinMode(13,OUTPUT);
+  digitalWrite(13,LOW);
+
   //init serial
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 
+  #ifndef NOMIDDLEMAN
   //softserial already init- begin
   mio_ser.begin(SOFT_BAUD_RATE);
+  #endif
 
   //out
   //pinMode(STRIP_LED_PIN,OUTPUT); //defer to FastLED
@@ -201,7 +237,6 @@ void setup()
   FastLED.show();
 
   digitalWrite(LED_PIN,LOW);
-  digitalWrite(13,LOW); //on-board led
 
   //init state
   ring_state = 0;
@@ -209,7 +244,6 @@ void setup()
   btn_down_t = 0;
   mode = MODE_SIGNUP;
   mode_data = MODE_DATA_ME;
-  io_transitioning = 0;
 }
 
 void loop()
@@ -225,32 +259,22 @@ void loop()
   {
     if(btn_down) digitalWrite(IO_PIN,HIGH);
     else         digitalWrite(IO_PIN,LOW);
+    #ifdef NOMIDDLEMAN
+    Serial.write(btn_down);
+    #else
     for(int i = 0; i < 10; i++) //idempotent state, so just make sure it gets sent
     {
       mio_ser.write(btn_down);
     }
+    #endif
   }
 
+  #ifdef NOMIDDLEMAN
+  //delegate to cmd loop!
+  #else
   while(mio_ser.available())
-  {
-    unsigned char new_mode = 0;
-    unsigned char new_mode_data = 0;
-    char d = mio_ser.read();
-    switch(d & 0x3) //00000011
-    {
-      case 0: new_mode = MODE_SIGNUP; break;
-      case 1: new_mode = MODE_PLAY; break;
-      case 2: new_mode = MODE_SCORE; break;
-    }
-    switch((d & 0x7) >> 2) //00000111 >> 2
-    {
-      case 0: new_mode_data = MODE_DATA_ME; break;
-      case 1: new_mode_data = MODE_DATA_THEM; break;
-    }
-    if(new_mode != mode || new_mode_data != mode_data) mode_t = 0;
-  }
-  mode_t++;
-  if(mode_t > MODE_T_MAX) mode_t = MODE_T_MAX;
+    set_mode_from_char(mio_ser.read());
+  #endif
 
   switch(mode)
   {
@@ -400,5 +424,8 @@ void loop()
   }
 
   cmd_loop();
+
+  mode_t++;
+  if(mode_t > MODE_T_MAX) mode_t = MODE_T_MAX;
 }
 

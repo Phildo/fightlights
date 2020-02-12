@@ -102,6 +102,11 @@ void cmd_loop()
 void setup()
 {
   delay(300); //power-up safety delay
+
+  //kill debug LED
+  pinMode(13,OUTPUT);
+  digitalWrite(13,LOW);
+
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
 

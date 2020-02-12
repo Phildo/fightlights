@@ -10,6 +10,8 @@
 #include "params.h"
 #include "sync.h"
 
+#define DEBUG_HANDSHAKE
+
 int gpu_fd;
 #ifdef NOMIDDLEMAN
 int btn_fd[2];
@@ -47,6 +49,9 @@ void ser_kill_fd(int *fd)
 
 void ser_init()
 {
+  #ifdef DEBUG_HANDSHAKE
+  printf("init\n");fflush(stdout);
+  #endif
   gpu_fd = 0;
   #ifdef NOMIDDLEMAN
   btn_fd[0] = 0;
@@ -62,7 +67,7 @@ void ser_init()
   whoru[cmd_len-1] = CMD_WHORU;
   whoru[cmd_len  ] = '\0';
 
-  rsp_len = 3;
+  rsp_len = 4;
   rsp = malloc(rsp_len+1); //should be > enough for whoru
   rsp[rsp_len] = '\0';
 
@@ -77,6 +82,9 @@ int ser_do()
 
   //run through available files
 
+  #ifdef DEBUG_HANDSHAKE
+  printf("looking...\n");fflush(stdout);
+  #endif
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
   if(ser_killed) { pthread_mutex_unlock(&ser_lock); return 0; }
@@ -88,6 +96,9 @@ int ser_do()
   if(ser_killed) { pthread_mutex_unlock(&ser_lock); return 0; }
   // do nothing and immediately unlock (lock is purely for sake of sleeping til command)
   pthread_mutex_unlock(&ser_lock);
+  #endif
+  #ifdef DEBUG_HANDSHAKE
+  printf("madeitthru...\n");fflush(stdout);
   #endif
 
   for(int i = 0; i < sizeof(file)/sizeof(char *); i++)
@@ -104,17 +115,20 @@ int ser_do()
       int c;
       int rsp_i = 0;
       c = serialGetchar(fd);
-      while(c > -1)
+      while(c > -1 && rsp_i < rsp_len)
       {
         rsp[rsp_i] = (char)c; rsp_i++;
-        if(rsp_i == rsp_len) break;
         c = serialGetchar(fd);
       }
       if(c == -1) { serialClose(fd); fd = 0; break; }
       serialFlush(fd);
+      if(rsp[rsp_i-1] == '\n') rsp[rsp_i-1] = '\0';
 
       if(!gpu_fd && strcmp(rsp,GPU_AID) == 0)
       {
+        #ifdef DEBUG_HANDSHAKE
+        printf("found GPU\n");fflush(stdout);
+        #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
         #endif
@@ -129,6 +143,9 @@ int ser_do()
       #ifdef NOMIDDLEMAN
       else if(!btn_fd[0] && strcmp(rsp,BTN0_AID) == 0)
       {
+        #ifdef DEBUG_HANDSHAKE
+        printf("found BTN0\n");fflush(stdout);
+        #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
         #endif
@@ -142,6 +159,9 @@ int ser_do()
       }
       else if(!btn_fd[1] && strcmp(rsp,BTN1_AID) == 0)
       {
+        #ifdef DEBUG_HANDSHAKE
+        printf("found BTN1\n");fflush(stdout);
+        #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
         #endif
@@ -156,6 +176,9 @@ int ser_do()
       #else
       else if(!mio_fd && strcmp(rsp,MIO_AID) == 0)
       {
+        #ifdef DEBUG_HANDSHAKE
+        printf("found MIO\n");fflush(stdout);
+        #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
         #endif
@@ -168,6 +191,11 @@ int ser_do()
         #endif
       }
       #endif
+      else
+      {
+        serialClose(fd);
+        fd = 0;
+      }
     }
   }
   //if failed, will be triggered again

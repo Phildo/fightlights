@@ -65,6 +65,7 @@ void mio_buff_init()
 #ifdef NOMIDDLEMAN
 void btn_ser_init(int i) //just wait to be given fd by ser
 {
+  printf("waiting %d\n",i);
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
   if(mio_killed) { pthread_mutex_unlock(&ser_lock); return; }
@@ -132,11 +133,7 @@ void btn_pull(int i)
   int c;
   c = serialGetchar(btn_fd[i]);
   if(c == -1) ser_kill_fd(&btn_fd[i]);
-  else if(c > -1)
-  {
-         if(c & 0x0E) mio_btn_down[i] = 0;
-    else if(c & 0x01) mio_btn_down[i] = 1;
-  }
+  else if(c > -1) mio_btn_down[i] = c;
 }
 #else
 void mio_pull()

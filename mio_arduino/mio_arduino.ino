@@ -94,6 +94,10 @@ void setup()
 {
   delay(300); //power-up safety delay
 
+  //kill debug LED
+  pinMode(13,OUTPUT);
+  digitalWrite(13,LOW);
+
   //init serial
   Serial.begin(BAUD_RATE);
   while(!Serial) { ; }
@@ -124,7 +128,7 @@ void loop()
   while(btn_b_ser.available()) { btn_b_down = btn_b_ser.read(); btn_b_delta = btn_b_down*2-1; };
 
   //relay btns to pi
-  byte msg = 0x00;
+  unsigned char msg = 0x00;
   msg |= (btn_a_delta & 0x0F);
   msg |= (btn_b_delta << 4);
   if(msg) Serial.write(&msg,1);
