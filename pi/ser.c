@@ -34,6 +34,9 @@ void ser_die();
 
 void ser_kill_fd(int *fd)
 {
+  #ifdef DEBUG_HANDSHAKE
+  printf("killing %d\n",*fd);fflush(stdout);
+  #endif
   serialClose(*fd);
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
@@ -44,6 +47,9 @@ void ser_kill_fd(int *fd)
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&ser_lock);
   pthread_cond_signal(&ser_requested_cond);
+  #endif
+  #ifdef DEBUG_HANDSHAKE
+  printf("killed %d\n",*fd);fflush(stdout);
   #endif
 }
 
