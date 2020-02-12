@@ -26,7 +26,11 @@ int mio_buff_n;
 #endif
 
 volatile extern unsigned char pong_state;
+#ifdef NOMIDDLEMAN
+unsigned char state[2];//need separate per btn!
+#else
 unsigned char state;
+#endif
 volatile unsigned char mio_btn_down[2];
 
 #ifdef NOMIDDLEMAN
@@ -92,18 +96,21 @@ void mio_ser_init() //just wait to be given fd by ser
 #ifdef NOMIDDLEMAN
 void btn_push(int i)
 {
-  if(state != pong_state)
+  if(state[i] != pong_state)
   {
-    state = pong_state;
+    state[i] = pong_state;
     unsigned char data_byte = 0;
-    switch(state)
+    switch(state[i])
     {
       case STATE_SIGNUP: data_byte = 0; break;
       case STATE_PLAY:   data_byte = 1; break;
       case STATE_SCORE:  data_byte = 2; break;
     }
     btn_buff[i][btn_buff_n-2] = data_byte;
-    if(serialPut(btn_fd[i],btn_buff[i],btn_buff_n-1) == -1) ser_kill_fd(&btn_fd[i]);
+    for(int j = 0; j < 3; j++)
+    {
+      if(serialPut(btn_fd[i],btn_buff[i],btn_buff_n-1) == -1) ser_kill_fd(&btn_fd[i]);
+    }
     serialFlush(btn_fd[i]);
   }
 }
@@ -158,10 +165,11 @@ void mio_init()
 {
   for(int i = 0; i < 2; i++)
     mio_btn_down[i] = 0;
-  state = 0;
   #ifdef NOMIDDLEMAN
+  for(int i = 0; i < 2; i++) state[i] = 0;
   btn_buff_init();
   #else
+  state = 0;
   mio_buff_init();
   #endif
   mio_killed = 0;
