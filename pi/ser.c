@@ -11,7 +11,11 @@
 #include "sync.h"
 
 int gpu_fd;
+#ifdef NOMIDDLEMAN
+int btn_fd[2];
+#else
 int mio_fd;
+#endif
 
 int ser_killed;
 
@@ -44,7 +48,12 @@ void ser_kill_fd(int *fd)
 void ser_init()
 {
   gpu_fd = 0;
+  #ifdef NOMIDDLEMAN
+  btn_fd[0] = 0;
+  btn_fd[1] = 0;
+  #else
   mio_fd = 0;
+  #endif
 
   //silly formatting of cmd
   cmd_len = strlen(CMD_PREAMBLE)+1; //preamble + cmd
@@ -71,7 +80,11 @@ int ser_do()
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
   if(ser_killed) { pthread_mutex_unlock(&ser_lock); return 0; }
+  #ifdef NOMIDDLEMAN
+  while(gpu_fd && btn_fd[0] && btn_fd[1] && !ser_killed) { pthread_cond_wait(&ser_requested_cond,&ser_lock); } //uniquely needs "ser_killed", because shouldn't lie about fds, even in death
+  #else
   while(gpu_fd && mio_fd && !ser_killed) { pthread_cond_wait(&ser_requested_cond,&ser_lock); } //uniquely needs "ser_killed", because shouldn't lie about fds, even in death
+  #endif
   if(ser_killed) { pthread_mutex_unlock(&ser_lock); return 0; }
   // do nothing and immediately unlock (lock is purely for sake of sleeping til command)
   pthread_mutex_unlock(&ser_lock);
@@ -113,6 +126,34 @@ int ser_do()
         pthread_cond_signal(&gpu_ser_ready_cond);
         #endif
       }
+      #ifdef NOMIDDLEMAN
+      else if(!btn_fd[0] && strcmp(rsp,BTN0_AID) == 0)
+      {
+        #ifdef MULTITHREAD
+        pthread_mutex_lock(&ser_lock);
+        #endif
+        btn_fd[0] = fd;
+        file_used[i] = fd;
+        fd = 0;
+        #ifdef MULTITHREAD
+        pthread_mutex_unlock(&ser_lock);
+        pthread_cond_signal(&btn_ser_ready_cond[0]);
+        #endif
+      }
+      else if(!btn_fd[1] && strcmp(rsp,BTN1_AID) == 0)
+      {
+        #ifdef MULTITHREAD
+        pthread_mutex_lock(&ser_lock);
+        #endif
+        btn_fd[1] = fd;
+        file_used[i] = fd;
+        fd = 0;
+        #ifdef MULTITHREAD
+        pthread_mutex_unlock(&ser_lock);
+        pthread_cond_signal(&btn_ser_ready_cond[1]);
+        #endif
+      }
+      #else
       else if(!mio_fd && strcmp(rsp,MIO_AID) == 0)
       {
         #ifdef MULTITHREAD
@@ -126,6 +167,7 @@ int ser_do()
         pthread_cond_signal(&mio_ser_ready_cond);
         #endif
       }
+      #endif
     }
   }
   //if failed, will be triggered again
@@ -144,7 +186,12 @@ void ser_kill()
   //leaving (commented out) code here so its absence isn't interpreted as an omission
   pthread_mutex_lock(&ser_lock);
   gpu_fd = 1;
+  #ifdef NOMIDDLEMAN
+  for(int i = 0; i < 2; i++)
+    btn_fd[i] = 1;
+  #else
   mio_fd = 1;
+  #endif
   pthread_mutex_unlock(&ser_lock);
   */
   pthread_cond_signal(&ser_requested_cond);
@@ -155,7 +202,15 @@ void ser_die()
 {
   if(gpu_fd) serialClose(gpu_fd);
   gpu_fd = 0;
+  #ifdef NOMIDDLEMAN
+  for(int i = 0; i < 2; i++)
+  {
+    if(btn_fd[i]) serialClose(btn_fd[i]);
+    btn_fd[i] = 0;
+  }
+  #else
   if(mio_fd) serialClose(mio_fd);
   mio_fd = 0;
+  #endif
 }
 

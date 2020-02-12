@@ -13,7 +13,8 @@ typedef unsigned char byte;
 //whoru
 #define GPU_AID "GPU"
 #define MIO_AID "MIO"
-#define BTN_AID "BTN" //not used!
+#define BTN0_AID "BTN0"
+#define BTN1_AID "BTN1"
 
 //CMD queue
 #define CMD_PREAMBLE "CMD_"
@@ -22,6 +23,8 @@ typedef unsigned char byte;
 
 //uncomment for single threaded
 #define MULTITHREAD
+//uncomment to use serial direct to buttons
+#define NOMIDDLEMAN
 
 #endif //PARAMS_H
 

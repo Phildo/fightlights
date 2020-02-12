@@ -22,12 +22,11 @@ long ball_p;
 int server;
 int serve;
 int bounce;
-volatile extern unsigned char mio_btn_a_down;
+volatile extern unsigned char mio_btn_down[2];
 unsigned char btn_a_down;
 unsigned int btn_a_down_t;
 unsigned int btn_a_press_t;
 unsigned int btn_a_up_t;
-volatile extern unsigned char mio_btn_b_down;
 unsigned char btn_b_down;
 unsigned int btn_b_down_t;
 unsigned int btn_b_press_t;
@@ -292,8 +291,8 @@ int pong_do()
 {
   if(pong_killed) { pong_die(); return 0; }
 
-  btn_a_down = mio_btn_a_down;
-  btn_b_down = mio_btn_b_down;
+  btn_a_down = mio_btn_down[0];
+  btn_b_down = mio_btn_down[1];
 
   //read buttons
   if(btn_a_down) { btn_a_down_t++;   btn_a_up_t = 0; }
