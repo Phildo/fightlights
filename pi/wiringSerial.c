@@ -6,7 +6,6 @@
 #include <termios.h>
 #include <unistd.h>
 #include <fcntl.h>
-#include <errno.h>
 #include <sys/ioctl.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -148,12 +147,9 @@ int serialGetchar(const int fd)
 {
   uint8_t x;
 
-  if(read(fd, &x, 1) != 1)
-  {
-    if(errno) return -1; //error
-    else return -2; //timeout
-  }
-
-  return((int)x) & 0xFF;
+  int r = read(fd, &x, 1);
+  if(r == -1) return -1; //error
+  else if(r == 1) return((int)x) & 0xFF;
+  else return -2; //timeout
 }
 
