@@ -8,6 +8,7 @@
 #define PLAYER 0 //0 or 1
 #define STRIP_BRIGHTNESS 120 //255 //0-255
 #define BUZZER_MAX 300
+#define LED_UPDATE_T_MAX 10 //set too low and we drop serial input
 #define SIGNUP_T_MAX 300
 #define PLAY_T_MAX 300
 #define SCORE_T_MAX 300
@@ -119,9 +120,8 @@ int btn_down_t;
 unsigned int mic_hot;
 volatile unsigned int im_mic_hot;
 void mic_interrupt() { im_mic_hot = MIC_HOT_STAY; }
-
-//cmdloop
-unsigned char cmd_trigger_i;
+//led
+unsigned char led_update_t;
 
 unsigned char serial_spinread(char *c)
 {
@@ -169,24 +169,23 @@ void cmd_whoru()
 void cmd_loop()
 {
   char d;
+
   if(Serial.available())
   {
     d = Serial.read();
-    if(d == CMD_PREAMBLE[cmd_trigger_i])
+    if(d == CMD_PREAMBLE[0])
     {
-      cmd_trigger_i++;
-      if(cmd_trigger_i == strlen(CMD_PREAMBLE))
+      unsigned char i = 1;
+      while(serial_spinread(&d) && d == CMD_PREAMBLE[i] && i < strlen(CMD_PREAMBLE)) i++; //note- will read one extra character (perfect!)
+      if(i == strlen(CMD_PREAMBLE))
       {
-        if(!serial_spinread(&d)) { cmd_trigger_i = 0; return; }
         switch(d)
         {
           case CMD_WHORU: cmd_whoru(); break;
           case CMD_DATA:  cmd_data(); break;
         }
-        cmd_trigger_i = 0;
       }
     }
-    else cmd_trigger_i = 0;
   }
 }
 
@@ -234,6 +233,7 @@ void setup()
   for(int i = 0; i < STRIP_NUM_LEDS; i++) strip_leds[i] = clear;
   FastLED.addLeds<STRIP_LED_TYPE, STRIP_LED_PIN, STRIP_COLOR_ORDER>(strip_leds, STRIP_NUM_LEDS).setCorrection( TypicalLEDStrip );
   FastLED.setBrightness(STRIP_BRIGHTNESS);
+  FastLED.setDither(0);
   FastLED.show();
 
   digitalWrite(LED_PIN,LOW);
@@ -242,6 +242,7 @@ void setup()
   ring_state = 0;
   btn_down = 0;
   btn_down_t = 0;
+  led_update_t = 0;
   mode = MODE_SIGNUP;
   mode_data = MODE_DATA_ME;
 }
@@ -281,7 +282,7 @@ void loop()
     case MODE_SIGNUP:
     {
       //speaker
-      if(btn_down_t) tone(SPEAKER_PIN,1000+btn_down_t*20);
+      if(btn_down_t) tone(SPEAKER_PIN,500+btn_down_t*10);
       else noTone(SPEAKER_PIN);
 
       //ring
@@ -321,8 +322,8 @@ void loop()
       unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
       strip_leds[target_i] = target_color;
       strip_leds[off_i] = off_color;
-      FastLED.show();
-      FastLED.delay(1);
+      led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
+      if(led_update_t == 0) FastLED.show();
       strip_leds[target_i] = 0x000000;
       strip_leds[off_i]    = 0x000000;
     }
@@ -368,8 +369,8 @@ void loop()
       unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
       strip_leds[target_i] = target_color;
       strip_leds[off_i] = off_color;
-      FastLED.show();
-      FastLED.delay(1);
+      led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
+      if(led_update_t == 0) FastLED.show();
       strip_leds[target_i] = 0x000000;
       strip_leds[off_i]    = 0x000000;
     }
@@ -415,13 +416,14 @@ void loop()
       unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
       strip_leds[target_i] = target_color;
       strip_leds[off_i] = off_color;
-      FastLED.show();
-      FastLED.delay(1);
+      led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
+      if(led_update_t == 0) FastLED.show();
       strip_leds[target_i] = 0x000000;
       strip_leds[off_i]    = 0x000000;
     }
     break;
   }
+  delay(3);
 
   cmd_loop();
 

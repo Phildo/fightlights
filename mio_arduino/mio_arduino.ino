@@ -34,9 +34,6 @@ unsigned char btn_b_down;
 //game state
 char state;
 
-//cmdloop
-unsigned char cmd_trigger_i;
-
 unsigned char serial_spinread(char *c)
 {
   unsigned int cmd_dead_t = 0;
@@ -69,24 +66,23 @@ void cmd_whoru()
 void cmd_loop()
 {
   char d;
+
   if(Serial.available())
   {
     d = Serial.read();
-    if(d == CMD_PREAMBLE[cmd_trigger_i])
+    if(d == CMD_PREAMBLE[0])
     {
-      cmd_trigger_i++;
-      if(cmd_trigger_i == strlen(CMD_PREAMBLE))
+      unsigned char i = 1;
+      while(serial_spinread(&d) && d == CMD_PREAMBLE[i] && i < strlen(CMD_PREAMBLE)) i++; //note- will read one extra character (perfect!)
+      if(i == strlen(CMD_PREAMBLE))
       {
-        if(!serial_spinread(&d)) { cmd_trigger_i = 0; return; }
         switch(d)
         {
           case CMD_WHORU: cmd_whoru(); break;
           case CMD_DATA:  cmd_data(); break;
         }
-        cmd_trigger_i = 0;
       }
     }
-    else cmd_trigger_i = 0;
   }
 }
 
@@ -111,8 +107,6 @@ void setup()
   btn_a_down = 0;
   btn_b_delta = 0;
   btn_b_down = 0;
-
-  cmd_trigger_i = 0;
 
   //impossible!
   btn_a_ser.listen();
