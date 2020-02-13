@@ -39,8 +39,8 @@
 #define PLAYER_0_B 0x00
 #define PLAYER_0_SPIN -1
 #define PLAYER_1_R 0x00
-#define PLAYER_1_G 0xFF
-#define PLAYER_1_B 0x00
+#define PLAYER_1_G 0x00
+#define PLAYER_1_B 0xFF
 #define PLAYER_1_SPIN 1
 
 //player adopt
@@ -330,7 +330,8 @@ void loop()
     break;
     case MODE_PLAY:
     {
-      noTone(SPEAKER_PIN);
+      if(mode_t < BUZZER_MAX) tone(SPEAKER_PIN,1000+BUZZER_MAX*10-mode_t*20);
+      else noTone(SPEAKER_PIN);
 
       //ring
       unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
@@ -377,7 +378,9 @@ void loop()
     break;
     case MODE_SCORE:
     {
-      noTone(SPEAKER_PIN);
+      //speaker
+      if(mode_data == MODE_DATA_ME) tone(SPEAKER_PIN,500+((mode_t*4)%BUZZER_MAX)*10);
+      else                          tone(SPEAKER_PIN,500+BUZZER_MAX*10-((mode_t*4)%BUZZER_MAX)*10);
 
       //ring
       unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;

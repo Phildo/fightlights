@@ -18,7 +18,7 @@ mio:
 
 .PHONY:btn
 btn:
-	@cd btn_arduino; for i in /dev/ttyUSB*; do RSP="`pingserial $$i 1000000 CMD_0`"; if [ "BTN0" = "$$RSP" ]; then ./set_player.sh 0; ARDUINO_PORT=$$i make upload; break; elif [ "BTN1" = "$$RSP" ]; then ./set_player.sh 1; ARDUINO_PORT=$$i make upload; break; fi; done
+	@cd btn_arduino; for i in /dev/ttyUSB*; do RSP="`pingserial $$i 1000000 CMD_0`"; if [ "BTN0" = "$$RSP" ]; then ./set_player.sh 0; ARDUINO_PORT=$$i make upload; elif [ "BTN1" = "$$RSP" ]; then ./set_player.sh 1; ARDUINO_PORT=$$i make upload; fi; done
 
 .PHONY:pi
 pi:
