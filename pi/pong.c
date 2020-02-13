@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <pthread.h>
 #include "sync.h"
+#include <stdio.h>
 
 //logic
 #define MAX_HIT_ZONE 10 //measured in real LEDs
@@ -18,6 +19,7 @@ int speed;
 int zone_a_len;
 int zone_b_len;
 long virtual_ball_p;
+long prev_ball_p;
 long ball_p;
 int server;
 int serve;
@@ -55,7 +57,6 @@ byte color_green;
 
 volatile byte strip_leds[STRIP_NUM_LEDS];
 
-//SYNC W/ ARDUINO
 void pong_colors_init()
 {
   color_blank        = color_clear = 0x0;
@@ -267,12 +268,14 @@ void set_state(unsigned char s)
         server = 1;
         virtual_ball_p = 0;
         ball_p = 0;
+        prev_ball_p = 0;
       }
       else
       {
         server = -1;
         virtual_ball_p = VIRTUAL_LEDS-1;
         ball_p = back(0);
+        prev_ball_p = back(0);
       }
       serve = server;
     }
@@ -323,15 +326,15 @@ int pong_do()
     {
       //update ball
       virtual_ball_p += serve*speed;
-      int old_ball_p = ball_p;
+      prev_ball_p = ball_p;
       ball_p = virtual_ball_p*STRIP_NUM_LEDS/VIRTUAL_LEDS;
       if(ball_p >= STRIP_NUM_LEDS) { ball_p = back(0); set_state(STATE_SCORE); break; }
       else if(ball_p < 0)          { ball_p = 0;       set_state(STATE_SCORE); break; }
 
       //clear hits at midpoint
       int midpoint = STRIP_NUM_LEDS/2;
-           if(serve ==  1 && old_ball_p < midpoint && ball_p >= midpoint) { btn_b_hit_p = -1; missile_b_hit_p = -1; }
-      else if(serve == -1 && old_ball_p > midpoint && ball_p <= midpoint) { btn_a_hit_p = -1; missile_a_hit_p = -1; }
+           if(serve ==  1 && prev_ball_p < midpoint && ball_p >= midpoint) { btn_b_hit_p = -1; missile_b_hit_p = -1; }
+      else if(serve == -1 && prev_ball_p > midpoint && ball_p <= midpoint) { btn_a_hit_p = -1; missile_a_hit_p = -1; }
 
       //handle hits
       int should_bounce = 0;
@@ -470,6 +473,17 @@ int pong_do()
 
         //draw ball
         strip_leds[ball_p] = color_ball;
+        if(prev_ball_p+1 < ball_p)
+        {
+          for(int f = prev_ball_p+1; f < ball_p; f++)
+            strip_leds[f] = color_ball_fade[3+(4*(f-prev_ball_p)/(prev_ball_p-ball_p))];
+        }
+        else if(prev_ball_p-1 > ball_p)
+        {
+          for(int f = prev_ball_p-1; f > ball_p; f--)
+            strip_leds[f] = color_ball_fade[3+(4*(f-prev_ball_p)/(prev_ball_p-ball_p))];
+        }
+
       }
         break;
       case STATE_SCORE:
