@@ -26,10 +26,14 @@ int mio_buff_n;
 #endif
 
 volatile extern unsigned char pong_state;
+volatile extern int pong_serve;
 #ifdef NOMIDDLEMAN
-unsigned char state[2];//need separate per btn!
+//need separate per btn!
+unsigned char state[2];
+int serve[2];
 #else
 unsigned char state;
+unsigned char serve;
 #endif
 volatile unsigned char mio_btn_down[2];
 
@@ -95,22 +99,28 @@ void mio_ser_init() //just wait to be given fd by ser
 #ifdef NOMIDDLEMAN
 void btn_push(int i)
 {
-  if(state[i] != pong_state)
+  if(state[i] != pong_state || serve[i] != pong_serve)
   {
     state[i] = pong_state;
+    serve[i] = pong_serve;
     unsigned char data_byte = 0;
+    //state
     switch(state[i])
     {
       case STATE_SIGNUP: data_byte = 0; break;
       case STATE_PLAY:   data_byte = 1; break;
       case STATE_SCORE:  data_byte = 2; break;
     }
+    //serve
+    if((i == 0 && serve[i] == 1) || (i == 1 && serve[i] == -1)) ; //"me", do nothing
+    else data_byte |= 0x1 << 2; //set "them" bit
     btn_buff[i][btn_buff_n-2] = data_byte;
-    for(int j = 0; j < 3; j++)
+    for(int j = 0; j < 3; j++) //3x should be enough to guarantee btn not in LED update cycle (idempotent)
     {
       if(serialPut(btn_fd[i],btn_buff[i],btn_buff_n-1) == -1) ser_kill_fd(&btn_fd[i]);
+      serialFlush(btn_fd[i]); //flush every try to "buffer" enough time to end LED update cycle
+      usleep(1000); //1ms (timing not critical)
     }
-    serialFlush(btn_fd[i]);
   }
 }
 #else

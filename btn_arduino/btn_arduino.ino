@@ -5,7 +5,7 @@
 #endif
 
 //customize
-#define PLAYER 0 //0 or 1
+#define PLAYER 1 //0 or 1
 #define STRIP_BRIGHTNESS 120 //255 //0-255
 #define BUZZER_MAX 300
 #define LED_UPDATE_T_MAX 10 //set too low and we drop serial input
@@ -112,6 +112,7 @@ NeoSWSerial mio_ser(MIO_RX_PIN,MIO_TX_PIN);
 unsigned char mode;
 unsigned int mode_t;
 unsigned char mode_data;
+unsigned int mode_data_t;
 unsigned int ring_state;
 //btn
 unsigned char btn_down;
@@ -149,7 +150,8 @@ void set_mode_from_char(char d)
     case 0: new_mode_data = MODE_DATA_ME; break;
     case 1: new_mode_data = MODE_DATA_THEM; break;
   }
-  if(new_mode != mode || new_mode_data != mode_data) mode_t = 0;
+  if(new_mode != mode) mode_t = 0;
+  else if(new_mode_data != mode_data) mode_data_t = 0;
   mode = new_mode;
   mode_data = new_mode_data;
 }
@@ -244,7 +246,9 @@ void setup()
   btn_down_t = 0;
   led_update_t = 0;
   mode = MODE_SIGNUP;
+  mode_t = 0;
   mode_data = MODE_DATA_ME;
+  mode_data_t = 0;
 }
 
 void loop()
@@ -330,7 +334,17 @@ void loop()
     break;
     case MODE_PLAY:
     {
-      if(mode_t < BUZZER_MAX) tone(SPEAKER_PIN,1000+BUZZER_MAX*10-mode_t*20);
+      if(mode_t < BUZZER_MAX) //play begins- launch
+      {
+        switch(mode_t%3)
+        {
+          case 0: tone(SPEAKER_PIN,1000+BUZZER_MAX*10-mode_t*10); break;
+          case 1: tone(SPEAKER_PIN, 800+BUZZER_MAX*10-mode_t*10); break;
+          case 2: tone(SPEAKER_PIN, 500+BUZZER_MAX*10-mode_t*10); break;
+        }
+      }
+      else if(mode_data == MODE_DATA_ME && mode_data_t < BUZZER_MAX) //newly bounced ball
+        tone(SPEAKER_PIN,1000+BUZZER_MAX*10-mode_data_t*20);
       else noTone(SPEAKER_PIN);
 
       //ring
@@ -379,7 +393,7 @@ void loop()
     case MODE_SCORE:
     {
       //speaker
-      if(mode_data == MODE_DATA_ME) tone(SPEAKER_PIN,500+((mode_t*4)%BUZZER_MAX)*10);
+      if(mode_data == MODE_DATA_ME) tone(SPEAKER_PIN,500+              ((mode_t*4)%BUZZER_MAX)*10);
       else                          tone(SPEAKER_PIN,500+BUZZER_MAX*10-((mode_t*4)%BUZZER_MAX)*10);
 
       //ring
@@ -430,7 +444,7 @@ void loop()
 
   cmd_loop();
 
-  mode_t++;
-  if(mode_t > MODE_T_MAX) mode_t = MODE_T_MAX;
+  mode_t++;      if(mode_t      > MODE_T_MAX) mode_t      = MODE_T_MAX;
+  mode_data_t++; if(mode_data_t > MODE_T_MAX) mode_data_t = MODE_T_MAX;
 }
 

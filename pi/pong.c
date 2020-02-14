@@ -22,7 +22,7 @@ long virtual_ball_p;
 long prev_ball_p;
 long ball_p;
 int server;
-int serve;
+volatile int pong_serve;
 int bounce;
 volatile extern unsigned char mio_btn_down[2];
 unsigned char btn_a_down;
@@ -277,7 +277,7 @@ void set_state(unsigned char s)
         ball_p = back(0);
         prev_ball_p = back(0);
       }
-      serve = server;
+      pong_serve = server;
     }
       break;
     case STATE_SCORE:
@@ -325,7 +325,7 @@ int pong_do()
     case STATE_PLAY:
     {
       //update ball
-      virtual_ball_p += serve*speed;
+      virtual_ball_p += pong_serve*speed;
       prev_ball_p = ball_p;
       ball_p = virtual_ball_p*STRIP_NUM_LEDS/VIRTUAL_LEDS;
       if(ball_p >= STRIP_NUM_LEDS) { ball_p = back(0); set_state(STATE_SCORE); break; }
@@ -333,21 +333,21 @@ int pong_do()
 
       //clear hits at midpoint
       int midpoint = STRIP_NUM_LEDS/2;
-           if(serve ==  1 && prev_ball_p < midpoint && ball_p >= midpoint) { btn_b_hit_p = -1; missile_b_hit_p = -1; }
-      else if(serve == -1 && prev_ball_p > midpoint && ball_p <= midpoint) { btn_a_hit_p = -1; missile_a_hit_p = -1; }
+           if(pong_serve ==  1 && prev_ball_p < midpoint && ball_p >= midpoint) { btn_b_hit_p = -1; missile_b_hit_p = -1; }
+      else if(pong_serve == -1 && prev_ball_p > midpoint && ball_p <= midpoint) { btn_a_hit_p = -1; missile_a_hit_p = -1; }
 
       //handle hits
       int should_bounce = 0;
       if(btn_a_hit_p == -1 && btn_a_down_t == 1) btn_a_hit_p = ball_p;
       if(btn_b_hit_p == -1 && btn_b_down_t == 1) btn_b_hit_p = ball_p;
 
-      if(serve == -1 && btn_a_press_t < zone_a_len && ball_p <= btn_a_press_t)
+      if(pong_serve == -1 && btn_a_press_t < zone_a_len && ball_p <= btn_a_press_t)
       {
         missile_a_hit_p = ball_p;
         missile_a_hit_t = 1;
         should_bounce = 1;
       }
-      if(serve == 1 && btn_b_press_t < zone_b_len && ball_p >= back(btn_b_press_t))
+      if(pong_serve == 1 && btn_b_press_t < zone_b_len && ball_p >= back(btn_b_press_t))
       {
         missile_b_hit_p = ball_p;
         missile_b_hit_t = 1;
@@ -358,8 +358,8 @@ int pong_do()
       {
         bounce++;
         speed = 3+(bounce/3);
-             if(serve == -1) { serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
-        else if(serve ==  1) { serve = -1; zone_b_len = MAX_HIT_ZONE-((bounce+2)/3); } //b served
+             if(pong_serve == -1) { pong_serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
+        else if(pong_serve ==  1) { pong_serve = -1; zone_b_len = MAX_HIT_ZONE-((bounce+2)/3); } //b served
         if(zone_a_len < MIN_HIT_ZONE) zone_a_len = MIN_HIT_ZONE;
         if(zone_b_len < MIN_HIT_ZONE) zone_b_len = MIN_HIT_ZONE;
       }
@@ -438,12 +438,12 @@ int pong_do()
         draw_pulsed_lane();
         if(bounce%3)
         {
-          if(serve == 1 && missile_a_hit_t < VIRTUAL_STRIP_FADE_N*2)
+          if(pong_serve == 1 && missile_a_hit_t < VIRTUAL_STRIP_FADE_N*2)
           {
             if(missile_a_hit_t > VIRTUAL_STRIP_FADE_N && (missile_a_hit_t/2)%2) strip_leds[zone_a_len] = color_red;
             else                                                                strip_leds[zone_a_len] = color_zone;
           }
-          if(serve == -1 && missile_b_hit_t < VIRTUAL_STRIP_FADE_N*2)
+          if(pong_serve == -1 && missile_b_hit_t < VIRTUAL_STRIP_FADE_N*2)
           {
             if(missile_b_hit_t > VIRTUAL_STRIP_FADE_N && (missile_b_hit_t/2)%2) strip_leds[back(zone_b_len)] = color_red;
             else                                                                strip_leds[back(zone_b_len)] = color_zone;
@@ -491,7 +491,7 @@ int pong_do()
         draw_pulsed_zones();
         clear_lane();
 
-        if(serve == 1) //a scored
+        if(pong_serve == 1) //a scored
         {
           strip_leds[state_t%zone_a_len] = color_a;
           strip_leds[STRIP_NUM_LEDS-zone_b_len+(state_t%zone_b_len)] = color_a;
@@ -504,7 +504,7 @@ int pong_do()
           for(int i = pulse_is; i < pulse_ie; i++)
             strip_leds[i] = color_a;
         }
-        else if(serve == -1) //b scored
+        else if(pong_serve == -1) //b scored
         {
           strip_leds[zone_a_len-1-(state_t%zone_a_len)] = color_b;
           strip_leds[STRIP_NUM_LEDS-1-(state_t%zone_b_len)] = color_b;
@@ -519,8 +519,8 @@ int pong_do()
         }
 
         //draw hits
-        if(serve == -1 && btn_a_hit_p != -1) strip_leds[btn_a_hit_p] = color_a;
-        if(serve ==  1 && btn_b_hit_p != -1) strip_leds[btn_b_hit_p] = color_b;
+        if(pong_serve == -1 && btn_a_hit_p != -1) strip_leds[btn_a_hit_p] = color_a;
+        if(pong_serve ==  1 && btn_b_hit_p != -1) strip_leds[btn_b_hit_p] = color_b;
 
         //draw ball
         strip_leds[ball_p] = color_ball;
