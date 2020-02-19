@@ -66,7 +66,7 @@
 
 //strip constants
 #define STRIP_NUM_LEDS 16
-#define STRIP_NUM_VIRTUAL_PER_LED 10
+#define STRIP_NUM_VIRTUAL_PER_LED 100
 #define STRIP_NUM_VIRTUAL_LEDS (STRIP_NUM_LEDS*STRIP_NUM_VIRTUAL_PER_LED)
 #define STRIP_LED_TYPE WS2812
 #define STRIP_COLOR_ORDER GRB
@@ -95,9 +95,9 @@
 #define MODE_T_MAX 1000
 
 //visparams
-#define MODE_SIGNUP_SPEED 1
-#define MODE_PLAY_SPEED 3
-#define MODE_SCORE_SPEED 10
+#define MODE_SIGNUP_SPEED 2
+#define MODE_PLAY_SPEED 10
+#define MODE_SCORE_SPEED 30
 
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
@@ -116,7 +116,8 @@ unsigned int mode_data_t;
 unsigned int ring_state;
 //btn
 unsigned char btn_down;
-int btn_down_t;
+int since_btn_down_t;
+int btn_down_buzz;
 //mic
 unsigned int mic_hot;
 volatile unsigned int im_mic_hot;
@@ -161,6 +162,7 @@ void cmd_data()
   char d;
   if(!serial_spinread(&d)) return;
   set_mode_from_char(d);
+  Serial.write(btn_down);//good idea to update button status on any delta
 }
 
 void cmd_whoru()
@@ -243,7 +245,8 @@ void setup()
   //init state
   ring_state = 0;
   btn_down = 0;
-  btn_down_t = 0;
+  since_btn_down_t = 0;
+  btn_down_buzz = 0;
   led_update_t = 0;
   mode = MODE_SIGNUP;
   mode_t = 0;
@@ -257,8 +260,8 @@ void loop()
   if(im_mic_hot) im_mic_hot--;
 
   char btn_delta = 0;
-  if(!digitalRead(BTN_PIN)) { if(!btn_down) { btn_delta =  1; btn_down_t = BUZZER_MAX/10; } btn_down = 1; btn_down_t++;  if(btn_down_t > BUZZER_MAX) btn_down_t = BUZZER_MAX*9/10; }
-  else                      { if( btn_down) { btn_delta = -1;                             } btn_down = 0; btn_down_t-=3; if(btn_down_t < 0         ) btn_down_t = 0;               }
+  if(!digitalRead(BTN_PIN)) { if(!btn_down) { btn_delta =  1; btn_down_buzz = BUZZER_MAX/10; since_btn_down_t = 0; } btn_down = 1; btn_down_buzz++;  if(btn_down_buzz > BUZZER_MAX) btn_down_buzz = BUZZER_MAX*9/10; }
+  else                      { if( btn_down) { btn_delta = -1;                                                      } btn_down = 0; btn_down_buzz-=3; if(btn_down_buzz < 0         ) btn_down_buzz = 0;               }
 
   if(btn_delta)
   {
@@ -286,7 +289,7 @@ void loop()
     case MODE_SIGNUP:
     {
       //speaker
-      if(btn_down_t) tone(SPEAKER_PIN,500+btn_down_t*10);
+      if(btn_down_buzz) tone(SPEAKER_PIN,500+btn_down_buzz*10);
       else noTone(SPEAKER_PIN);
 
       //ring
@@ -345,6 +348,8 @@ void loop()
       }
       else if(mode_data == MODE_DATA_ME && mode_data_t < BUZZER_MAX) //newly bounced ball
         tone(SPEAKER_PIN,1000+BUZZER_MAX*10-mode_data_t*20);
+      else if(since_btn_down_t < BUZZER_MAX/5) //button pressed- could be hit/miss!
+        tone(SPEAKER_PIN,1000+since_btn_down_t*20);
       else noTone(SPEAKER_PIN);
 
       //ring
@@ -397,10 +402,6 @@ void loop()
       else                          tone(SPEAKER_PIN,500+BUZZER_MAX*10-((mode_t*4)%BUZZER_MAX)*10);
 
       //ring
-      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
-
       unsigned long t_r;
       unsigned long t_g;
       unsigned long t_b;
@@ -422,14 +423,25 @@ void loop()
         ring_state = (ring_state+MODE_SCORE_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
       }
 
-      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
+      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
+      unsigned long biased_shade;
+
+      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-shade;
+      biased_shade = biased_shade*biased_shade/STRIP_NUM_VIRTUAL_PER_LED;
+      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-biased_shade;
+      r = biased_shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+      g = biased_shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+      b = biased_shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
       unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
       shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
-      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-shade;
+      biased_shade = biased_shade*biased_shade/STRIP_NUM_VIRTUAL_PER_LED;
+      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-biased_shade;
+      r = biased_shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+      g = biased_shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+      b = biased_shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
       unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
       strip_leds[target_i] = target_color;
       strip_leds[off_i] = off_color;
@@ -444,7 +456,8 @@ void loop()
 
   cmd_loop();
 
-  mode_t++;      if(mode_t      > MODE_T_MAX) mode_t      = MODE_T_MAX;
-  mode_data_t++; if(mode_data_t > MODE_T_MAX) mode_data_t = MODE_T_MAX;
+  mode_t++;           if(mode_t      > MODE_T_MAX) mode_t      = MODE_T_MAX;
+  mode_data_t++;      if(mode_data_t > MODE_T_MAX) mode_data_t = MODE_T_MAX;
+  since_btn_down_t++; if(since_btn_down_t > MODE_T_MAX) since_btn_down_t = MODE_T_MAX;
 }
 

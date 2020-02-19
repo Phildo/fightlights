@@ -1,7 +1,7 @@
 #include <FastLED.h>
 
 //customize
-#define STRIP_BRIGHTNESS 100 //0-255
+#define STRIP_BRIGHTNESS 255 //0-255
 
 //arduino constants
 #define STRIP_LED_PIN 3
