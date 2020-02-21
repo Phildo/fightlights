@@ -8,88 +8,12 @@
 #include "wiringSerial.h"
 
 #include "params.h"
+#include "util.h"
 #include "sync.h"
 #include "ser.h"
 
-typedef struct
-{
-  byte r;
-  byte g;
-  byte b;
-} CRGB;
-CRGB lut[16];
-
-CRGB nCRGB(byte r, byte g, byte b)
-{
-  CRGB c;
-  c.r = r;
-  c.g = g;
-  c.b = b;
-  return c;
-}
-
-CRGB dampen_color(CRGB in, int amt, int maxamt)
-{
-  int bright = 1; //takes away the lowest fractions (turns 1/10 into 2/11)
-  amt    += bright;
-  maxamt += bright;
-  int r = in.r*amt/maxamt;
-  int g = in.g*amt/maxamt;
-  int b = in.b*amt/maxamt;
-  return nCRGB(r,g,b);
-}
-
-CRGB hdampen_color(CRGB in, int amt, int maxamt)
-{
-  int bright = 1; //takes away the lowest fractions (turns 1/10 into 2/11)
-  amt    += bright;
-  maxamt += bright;
-  amt = maxamt-amt;
-  int r = in.r;
-  int g = in.g;
-  int b = in.b;
-  for(int i = 0; i < amt; i++)
-  {
-    r/=3;
-    g/=3;
-    b/=3;
-  }
-  return nCRGB(r,g,b);
-}
-
-void lut_init()
-{
-  //helpful constants for color-picking
-  CRGB black      = nCRGB(0x00,0x00,0x00); //CRGB::Black;
-  CRGB white      = nCRGB(0xFF,0xFF,0xFF); //CRGB::White;
-  CRGB red        = nCRGB(0xFF,0x00,0x00); //CRGB::Red;
-  CRGB green      = nCRGB(0x00,0xFF,0x00); //CRGB::Green;
-  CRGB blue       = nCRGB(0x00,0x00,0xFF); //CRGB::Blue;
-  CRGB yellow     = nCRGB(0xFF,0xFF,0x00); //CRGB::Yellow;
-  CRGB light_blue = nCRGB(0x4E,0xFD,0xEE);
-  CRGB dark_blue  = nCRGB(0x3C,0x44,0xE8);
-  CRGB pink       = nCRGB(0xA6,0x11,0x27);
-
-  lut[0x0] = black;                      //color_clear
-  lut[0x1] = white;                      //color_ball{,_fade[0]}
-  lut[0x2] = hdampen_color(lut[0x1],2,3); //color_ball_fade[1]
-  lut[0x3] = hdampen_color(lut[0x1],1,3); //color_ball_fade[2]
-  lut[0x4] = hdampen_color(lut[0x1],0,3); //color_ball_fade[3]
-  lut[0x5] = blue;                       //color_a{,_fade[0]}
-  lut[0x6] = hdampen_color(lut[0x5],2,3); //color_a_fade[1]
-  lut[0x7] = hdampen_color(lut[0x5],1,3); //color_a_fade[2]
-  lut[0x8] = hdampen_color(lut[0x5],0,3); //color_a_fade[3]
-  lut[0x9] = red;                        //color_b{,_fade[0]}
-  lut[0xA] = hdampen_color(lut[0x9],2,3); //color_b_fade[1]
-  lut[0xB] = hdampen_color(lut[0x9],1,3); //color_b_fade[2]
-  lut[0xC] = hdampen_color(lut[0x9],0,3); //color_b_fade[3]
-  lut[0xD] = pink;                       //color_zone
-  lut[0xE] = red;                        //color_?
-  lut[0xF] = green;                      //color_?
-}
-
 int gpu_killed;
-volatile extern byte strip_leds[STRIP_NUM_LEDS];
+volatile extern color strip_leds[STRIP_NUM_LEDS];
 
 extern int gpu_fd;
 byte *gpu_buff;
@@ -130,7 +54,6 @@ void gpu_push()
 
 void compress_strip()
 {
-
   gpu_buff_i = strlen(CMD_PREAMBLE)+1+1; //preamble assumed already in place, also jump 'ncommands' byte (set at end)
   int strip_i = 0;
   byte n_commands = 0;
@@ -141,35 +64,79 @@ void compress_strip()
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   #endif
 
-/*
-  static int HACK_I = 0;
-  for(int i = 0; i < STRIP_NUM_LEDS; i++)
-    strip_leds[i] = 0; //clear
-  strip_leds[HACK_I] = 1; //something else
-  HACK_I = (HACK_I+1)%STRIP_NUM_LEDS;
-*/
-
+  int cmd_enc_i;
+  int cmd_n_i;
+  int stream_len;
+  int run_len;
   while(strip_i < STRIP_NUM_LEDS)
   {
-    byte runlen = 1;
-    int color = strip_leds[strip_i]; strip_i++;
-    while(runlen < 0xFF && strip_i < STRIP_NUM_LEDS && strip_leds[strip_i] == color)
-    {
-      runlen++;
-      strip_i++;
-    }
-    gpu_buff[gpu_buff_i] = runlen;       gpu_buff_i++;
-    gpu_buff[gpu_buff_i] = lut[color].r; gpu_buff_i++;
-    gpu_buff[gpu_buff_i] = lut[color].g; gpu_buff_i++;
-    gpu_buff[gpu_buff_i] = lut[color].b; gpu_buff_i++;
+    //begin cmd, assume stream
     n_commands++;
+    gpu_buff[gpu_buff_i] = ENC_STREAM; cmd_enc_i = gpu_buff_i; gpu_buff_i++;
+    gpu_buff[gpu_buff_i] = 1;          cmd_n_i   = gpu_buff_i; gpu_buff_i++;
+    color c = strip_leds[strip_i]; strip_i++;
+    gpu_buff[gpu_buff_i] = c.r; gpu_buff_i++;
+    gpu_buff[gpu_buff_i] = c.g; gpu_buff_i++;
+    gpu_buff[gpu_buff_i] = c.b; gpu_buff_i++;
+    run_len = 1;
+    stream_len = 1;
+
+    while(stream_len < 0xFF && strip_i < STRIP_NUM_LEDS)
+    {
+      color nc = strip_leds[strip_i]; strip_i++;
+      stream_len++;
+      if(color_cmp(nc,c)) run_len++;
+      else                run_len = 1;
+      if(run_len == 3)
+      {
+        stream_len -= 3;
+        if(stream_len)
+        {
+          gpu_buff[cmd_n_i] = stream_len;
+          stream_len = 0;
+          gpu_buff_i -= 3*2;
+          n_commands++;
+          gpu_buff[gpu_buff_i] = ENC_RUN; cmd_enc_i = gpu_buff_i; gpu_buff_i++;
+          gpu_buff[gpu_buff_i] = run_len; cmd_n_i   = gpu_buff_i; gpu_buff_i++; //will get overwritten later anyways
+          gpu_buff[gpu_buff_i] = nc.r; gpu_buff_i++;
+          gpu_buff[gpu_buff_i] = nc.g; gpu_buff_i++;
+          gpu_buff[gpu_buff_i] = nc.b; gpu_buff_i++;
+        }
+        else
+        {
+          gpu_buff[cmd_enc_i] = ENC_RUN;
+          gpu_buff_i -= 3;
+        }
+        while(run_len < 0xFF && strip_i < STRIP_NUM_LEDS && color_cmp(strip_leds[strip_i],c))
+        {
+          run_len++;
+          strip_i++;
+        }
+        gpu_buff[cmd_n_i] = run_len;
+        run_len = 0;
+        break;
+      }
+      else
+      {
+        gpu_buff[gpu_buff_i] = nc.r; gpu_buff_i++;
+        gpu_buff[gpu_buff_i] = nc.g; gpu_buff_i++;
+        gpu_buff[gpu_buff_i] = nc.b; gpu_buff_i++;
+      }
+      c = nc;
+    }
   }
+  if(stream_len) gpu_buff[cmd_n_i] = stream_len;
   gpu_buff[strlen(CMD_PREAMBLE)+1] = n_commands;
   gpu_buff[gpu_buff_i] = '\0';
   strip_ready = 0;
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&strip_lock);
   #endif
+  printf("BEGIN\n");
+  for(int i = 0; i < gpu_buff_i; i++)
+    printf("%03d %02x %c\n", gpu_buff[i], gpu_buff[i], gpu_buff[i]);
+  printf("END\n");
+  printf("\n");
 }
 
 void gpu_die();
@@ -177,7 +144,6 @@ void gpu_die();
 
 void gpu_init()
 {
-  lut_init();
   gpu_buff_init();
   gpu_killed = 0;
 }
@@ -187,7 +153,6 @@ int gpu_do()
   if(gpu_killed) { gpu_die(); return 0; }
   if(!gpu_fd) gpu_ser_init();
   compress_strip();
-  //show_lut(); //uncomment to overwrite buff showing repeating LUT
   gpu_push();
   return 1;
 }
@@ -211,5 +176,4 @@ void gpu_die()
   gpu_buff = 0;
   gpu_buff_n = 0;
 }
-
 

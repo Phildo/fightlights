@@ -3,7 +3,7 @@ SRC=*.c
 HRC=*.h
 
 $(OUT): $(SRC) $(HRC)
-	gcc $(SRC) -lwiringPi -lpthread -o $(OUT)
+	gcc $(SRC) -lm -lwiringPi -lpthread -o $(OUT)
 
 run: $(OUT)
 	./$(OUT)

@@ -21,6 +21,9 @@
 #define CMD_WHORU '0'
 #define CMD_DATA '1'
 
+#define ENC_STREAM 0
+#define ENC_RUN 1
+
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
@@ -54,18 +57,39 @@ void cmd_data()
   while(dcmd_n) //perform commands
   {
     if(!serial_spinread(&d)) return;
-    char n = d;
-    if(!serial_spinread(&d)) return;
-    char r = d;
-    if(!serial_spinread(&d)) return;
-    char g = d;
-    if(!serial_spinread(&d)) return;
-    char b = d;
-    CRGB color = CRGB(r,g,b);
-    while(n)
+    if(d == ENC_STREAM)
     {
-      strip_leds[strip_i++] = color;
-      n--;
+      if(!serial_spinread(&d)) return;
+      char n = d;
+      while(n)
+      {
+        if(!serial_spinread(&d)) return;
+        char r = d;
+        if(!serial_spinread(&d)) return;
+        char g = d;
+        if(!serial_spinread(&d)) return;
+        char b = d;
+        CRGB color = CRGB(r,g,b);
+        strip_leds[strip_i++] = color;
+        n--;
+      }
+    }
+    else if(d == ENC_RUN)
+    {
+      if(!serial_spinread(&d)) return;
+      char n = d;
+      if(!serial_spinread(&d)) return;
+      char r = d;
+      if(!serial_spinread(&d)) return;
+      char g = d;
+      if(!serial_spinread(&d)) return;
+      char b = d;
+      CRGB color = CRGB(r,g,b);
+      while(n)
+      {
+        strip_leds[strip_i++] = color;
+        n--;
+      }
     }
     dcmd_n--;
   }

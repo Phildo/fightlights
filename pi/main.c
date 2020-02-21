@@ -48,6 +48,7 @@ void *pong_thread_main(void *args)
   now_t delta;
   now_t remaining;
   int target_ms = 16;
+  //target_ms *= 10;
   while(go)
   {
     go = pong_do();

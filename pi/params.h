@@ -20,6 +20,8 @@ typedef unsigned char byte;
 #define CMD_PREAMBLE "CMD_"
 #define CMD_WHORU '0'
 #define CMD_DATA '1'
+#define ENC_STREAM 0
+#define ENC_RUN 1
 
 //uncomment for single threaded
 #define MULTITHREAD
