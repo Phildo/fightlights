@@ -34,6 +34,18 @@ color hdampen_color(color in, int amt)
   return ncolor(r,g,b);
 }
 
+color mix_color(color a, color b)
+{
+  color c;
+  int sumr = a.r+b.r;
+  c.r = a.r*(float)a.r/sumr + b.r*(float)b.r/sumr;
+  int sumg = a.g+b.g;
+  c.g = a.g*(float)a.g/sumg + b.g*(float)b.g/sumg;
+  int sumb = a.b+b.b;
+  c.b = a.b*(float)a.b/sumb + b.b*(float)b.b/sumb;
+  return c;
+}
+
 int color_cmp(color a, color b)
 {
   return a.r == b.r &&

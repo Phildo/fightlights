@@ -8,6 +8,7 @@ typedef struct { byte r; byte g; byte b; } color;
 color ncolor(byte r, byte g, byte b);
 color dampen_color(color in, float amt);
 color hdampen_color(color in, int amt);
+color mix_color(color a, color b);
 int color_cmp(color a, color b);
 
 //timing

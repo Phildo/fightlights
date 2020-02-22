@@ -22,6 +22,7 @@ extern pthread_cond_t strip_ready_cond;
 #define STATE_SIGNUP 0
 #define STATE_PLAY 1
 #define STATE_SCORE 2
+#define STATE_DEBUG 3
 
 #endif //SYNC_H
 

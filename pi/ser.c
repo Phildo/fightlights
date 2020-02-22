@@ -49,7 +49,7 @@ void ser_kill_fd(int *fd)
   pthread_cond_signal(&ser_requested_cond);
   #endif
   #ifdef DEBUG_HANDSHAKE
-  printf("killed %d\n",*fd);fflush(stdout);
+  printf("killed fd");fflush(stdout);
   #endif
 }
 
@@ -89,7 +89,7 @@ int ser_do()
   //run through available files
 
   #ifdef DEBUG_HANDSHAKE
-  printf("looking...\n");fflush(stdout);
+  printf("ser waiting\n");fflush(stdout);
   #endif
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
@@ -104,7 +104,7 @@ int ser_do()
   pthread_mutex_unlock(&ser_lock);
   #endif
   #ifdef DEBUG_HANDSHAKE
-  printf("madeitthru...\n");fflush(stdout);
+  printf("ser check\n");fflush(stdout);
   #endif
 
   for(int i = 0; i < sizeof(file)/sizeof(char *); i++)

@@ -124,19 +124,22 @@ void compress_strip()
       }
       c = nc;
     }
+    if(stream_len) gpu_buff[cmd_n_i] = stream_len;
   }
-  if(stream_len) gpu_buff[cmd_n_i] = stream_len;
   gpu_buff[strlen(CMD_PREAMBLE)+1] = n_commands;
   gpu_buff[gpu_buff_i] = '\0';
   strip_ready = 0;
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&strip_lock);
   #endif
+  //printf("%d\n",gpu_buff_i);
+  /*
   printf("BEGIN\n");
   for(int i = 0; i < gpu_buff_i; i++)
     printf("%03d %02x %c\n", gpu_buff[i], gpu_buff[i], gpu_buff[i]);
   printf("END\n");
   printf("\n");
+  */
 }
 
 void gpu_die();
