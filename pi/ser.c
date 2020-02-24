@@ -49,7 +49,7 @@ void ser_kill_fd(int *fd)
   pthread_cond_signal(&ser_requested_cond);
   #endif
   #ifdef DEBUG_HANDSHAKE
-  printf("killed fd");fflush(stdout);
+  printf("killed fd\n");fflush(stdout);
   #endif
 }
 

@@ -174,7 +174,7 @@ void pong_init()
   t_mod_twelvepi_100 = 0;
 
   set_state(STATE_SIGNUP);
-  set_state(STATE_DEBUG); //HACK
+  //set_state(STATE_DEBUG); //HACK
   draw_base_strip();
 
   pong_killed = 0;
@@ -198,7 +198,7 @@ void set_state(unsigned char s)
         btn_a_down_t  = 0;
         btn_b_down_t  = 1;
       }
-      speed = 1;
+      speed = 10;
       zone_a_len = MAX_HIT_ZONE;
       zone_b_len = MAX_HIT_ZONE;
       btn_a_hit_p     = -1;
@@ -321,7 +321,7 @@ int pong_do()
       if(should_bounce)
       {
         bounce++;
-        speed = 1+(bounce/6);
+        speed = 10+(bounce*10/6);
              if(pong_serve == -1) { pong_serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
         else if(pong_serve ==  1) { pong_serve = -1; zone_b_len = MAX_HIT_ZONE-((bounce+2)/3); } //b served
         if(zone_a_len < MIN_HIT_ZONE) zone_a_len = MIN_HIT_ZONE;
@@ -369,18 +369,18 @@ int pong_do()
         draw_base_strip();
 
         int resolution = 10;
-        float speed = 0.5f;
+        float wspeed = 0.5f;
         float invwavelength = 0.1f;
         for(int i = 0; i < btn_a_down_t*2 && i < STRIP_NUM_LEDS/2; i++)
         {
-          float d = timed_pwave(i,speed,invwavelength);
+          float d = timed_pwave(i,wspeed,invwavelength);
           d = 0.5+d*0.5;
           d = floor(d*resolution)/resolution;
           strip_leds[i] = mix_color(strip_leds[i],dampen_color(color_a,d));
         }
         for(int i = 0; i < btn_b_down_t*2 && i < STRIP_NUM_LEDS/2; i++)
         {
-          float d = timed_pwave(i,speed,invwavelength);
+          float d = timed_pwave(i,wspeed,invwavelength);
           d = 0.5+d*0.5;
           d = floor(d*resolution)/resolution;
           strip_leds[back(i)] = mix_color(strip_leds[back(i)],dampen_color(color_b,d));
@@ -401,8 +401,8 @@ int pong_do()
         break;
       case STATE_PLAY:
       {
-        //draw_base_strip();
-        for(int i = 0; i < STRIP_NUM_LEDS; i++) strip_leds[i] = clear;
+        draw_base_strip();
+        //for(int i = 0; i < STRIP_NUM_LEDS; i++) strip_leds[i] = clear; //HACK
 
         int t = missile_a_hit_t;
         if(!missile_a_hit_t || (missile_a_hit_t && missile_b_hit_t && missile_a_hit_t > missile_b_hit_t)) t = missile_b_hit_t; //t == the lowest non-zero missile_[ab]_hit_t, or 0
