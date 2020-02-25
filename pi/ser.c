@@ -21,8 +21,8 @@ int mio_fd;
 
 int ser_killed;
 
-char *file[]    = {"/dev/ttyUSB0","/dev/ttyUSB1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4"};
-int file_used[] = {             0,             0,             0,             0,             0};
+char *file[]    = {"/dev/ttyUSB0","/dev/ttyACM0","/dev/ttyUSB1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4"};
+int file_used[] = {             0,             0,             0,             0,             0,             0};
 
 int cmd_len;
 char *whoru;
