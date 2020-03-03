@@ -11,6 +11,7 @@
 #include "pong.h"
 #include "ser.h"
 #include "gpu.h"
+#include "snd.h"
 #include "mio.h"
 
 //threading
@@ -19,6 +20,7 @@ int main_killed;
 pthread_t pong_thread;
 pthread_t ser_thread;
 pthread_t gpu_thread;
+pthread_t snd_thread;
 #ifdef NOMIDDLEMAN
 pthread_t btn_thread[2];
 #else
@@ -91,6 +93,16 @@ void *gpu_thread_main(void *args)
   return 0;
 }
 
+void *snd_thread_main(void *args)
+{
+  int go = 1;
+  while(go)
+  {
+    go = snd_do();
+  }
+  return 0;
+}
+
 #ifdef NOMIDDLEMAN
 void *btn_thread_main(void *args)
 {
@@ -156,6 +168,8 @@ void init_threads()
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
   err = pthread_create(&gpu_thread, NULL, &gpu_thread_main, NULL);
   if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  err = pthread_create(&snd_thread, NULL, &snd_thread_main, NULL);
+  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
   #ifdef NOMIDDLEMAN
   for(int i = 0; i < 2; i++)
   {
@@ -176,6 +190,7 @@ void kill_threads()
   #else
   pthread_join(mio_thread, NULL);
   #endif
+  pthread_join(snd_thread, NULL);
   pthread_join(gpu_thread, NULL);
   pthread_join(ser_thread, NULL);
   pthread_join(pong_thread, NULL);
@@ -200,6 +215,7 @@ void multithread_main()
   pong_init();
   ser_init();
   gpu_init();
+  snd_init();
   mio_init();
 
   init_threads();
@@ -207,6 +223,7 @@ void multithread_main()
   while(!main_killed) ; //send SIGTERM to kill
 
   mio_kill();
+  snd_kill();
   gpu_kill();
   ser_kill();
   pong_kill();
@@ -221,6 +238,7 @@ void singlethread_main()
   pong_init();
   ser_init();
   gpu_init();
+  snd_init();
   mio_init();
 
   while(!main_killed) //send SIGTERM to kill
@@ -228,6 +246,7 @@ void singlethread_main()
     pong_do();
     ser_do();
     gpu_do();
+    snd_do();
     #ifdef NOMIDDLEMAN
     for(int i = 0; i < 2; i++)
       btn_do(i);
@@ -238,6 +257,7 @@ void singlethread_main()
   }
 
   mio_kill();
+  snd_kill();
   gpu_kill();
   ser_kill();
   pong_kill();
