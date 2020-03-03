@@ -8,7 +8,7 @@
 
 void snd_init()
 {
-  const char *filename = "/home/pi/shortsample.wav";
+  const char *filename = "../assets/test.wav";
   SNDFILE *file = NULL;
   SF_INFO sfinfo;
 
@@ -57,7 +57,7 @@ void snd_init()
     fprintf(stderr,"Couldn't get exact period size\n");
     exit(1);
   }
-  int* buff = NULL;
+  short* buff = NULL;
   int readcount;
   buff = malloc(frames * sfinfo.channels * sizeof(short));
   while((readcount = sf_readf_short(file, buff, frames)) > 0)
