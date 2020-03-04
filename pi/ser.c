@@ -21,13 +21,13 @@ int mio_fd;
 
 int ser_killed;
 
-char *file[]    = {"/dev/ttyUSB0","/dev/ttyACM0","/dev/ttyUSB1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4"};
-int file_used[] = {             0,             0,             0,             0,             0,             0};
+static const char *file[]    = {"/dev/ttyUSB0","/dev/ttyACM0","/dev/ttyUSB1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4"};
+static int file_used[] = {             0,             0,             0,             0,             0,             0};
 
-int cmd_len;
-char *whoru;
-int rsp_len;
-char *rsp;
+static int cmd_len;
+static char *whoru;
+static int rsp_len;
+static char *rsp;
 
 void ser_die();
 //public
@@ -111,6 +111,9 @@ int ser_do()
   {
     if(file_used[i]) continue;
     fd = serialOpen(file[i], BAUD_RATE);
+    #ifdef DEBUG_HANDSHAKE
+    printf("checking %s\n",file[i]);fflush(stdout);
+    #endif
     if(fd) sleep(3);
     while(fd)
     {
@@ -129,6 +132,9 @@ int ser_do()
       if(c == -1) { serialClose(fd); fd = 0; break; }
       serialFlush(fd);
       if(rsp[rsp_i-1] == '\n') rsp[rsp_i-1] = '\0';
+      #ifdef DEBUG_HANDSHAKE
+      printf("%s\n",rsp);fflush(stdout);
+      #endif
 
       if(!gpu_fd && strcmp(rsp,GPU_AID) == 0)
       {

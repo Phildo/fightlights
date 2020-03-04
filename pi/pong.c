@@ -16,53 +16,54 @@
 
 int pong_killed;
 
-unsigned int t_mod_twelvepi_100;
+static unsigned int t_mod_twelvepi_100;
 volatile unsigned char pong_state;
-unsigned int state_t;
-int speed;
-int zone_a_len;
-int zone_b_len;
-long prev_virtual_ball_p;
-long virtual_ball_p;
-long prev_ball_p;
-long ball_p;
+static unsigned int state_t;
+static int speed;
+static int zone_a_len;
+static int zone_b_len;
+static long prev_virtual_ball_p;
+static long virtual_ball_p;
+static long prev_ball_p;
+static long ball_p;
 volatile int pong_serve;
-int server;
-int bounce;
+static int server;
+static int bounce;
 volatile extern unsigned char mio_btn_down[2];
-unsigned char btn_a_down;
-unsigned int btn_a_down_t;
-unsigned int btn_a_press_t;
-unsigned int btn_a_up_t;
-unsigned char btn_b_down;
-unsigned int btn_b_down_t;
-unsigned int btn_b_press_t;
-unsigned int btn_b_up_t;
-int btn_a_hit_p;
-int missile_a_hit_p;
-unsigned int missile_a_hit_t;
-int btn_b_hit_p;
-int missile_b_hit_p;
-unsigned int missile_b_hit_t;
+static unsigned char btn_a_down;
+static unsigned int btn_a_down_t;
+static unsigned int btn_a_press_t;
+static unsigned int btn_a_up_t;
+static unsigned char btn_b_down;
+static unsigned int btn_b_down_t;
+static unsigned int btn_b_press_t;
+static unsigned int btn_b_up_t;
+static int btn_a_hit_p;
+static int missile_a_hit_p;
+static unsigned int missile_a_hit_t;
+static int btn_b_hit_p;
+static int missile_b_hit_p;
+static unsigned int missile_b_hit_t;
+volatile extern int snd_play;
 
 //vis state
 //signup
 
-color clear;
-color black;
-color white;
-color red;
-color green;
-color blue;
-color yellow;
-color light_blue;
-color dark_blue;
-color pink;
+static color clear;
+static color black;
+static color white;
+static color red;
+static color green;
+static color blue;
+static color yellow;
+static color light_blue;
+static color dark_blue;
+static color pink;
 
-color color_a;
-color color_b;
-color color_ball;
-color color_zone;
+static color color_a;
+static color color_b;
+static color color_ball;
+static color color_zone;
 
 volatile color strip_leds[STRIP_NUM_LEDS];
 
@@ -188,6 +189,7 @@ void set_state(unsigned char s)
   {
     case STATE_SIGNUP:
     {
+      snd_play = 1;
       if(btn_a_down_t >= btn_b_down_t)
       {
         btn_a_down_t  = 1;
@@ -210,6 +212,7 @@ void set_state(unsigned char s)
       break;
     case STATE_PLAY:
     {
+      snd_play = 2;
       if(btn_a_down_t >= btn_b_down_t)
       {
         server = 1;
@@ -231,6 +234,7 @@ void set_state(unsigned char s)
       break;
     case STATE_SCORE:
     {
+      snd_play = 2;
     }
       break;
     case STATE_DEBUG:
@@ -320,6 +324,7 @@ int pong_do()
 
       if(should_bounce)
       {
+        snd_play = 0;
         bounce++;
         speed = 10+(bounce*10/6);
              if(pong_serve == -1) { pong_serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
