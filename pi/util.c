@@ -1,6 +1,7 @@
 #include "util.h"
 #include <time.h>
 #include <stdio.h>
+#include "params.h"
 
 //color
 color ncolor(byte r, byte g, byte b)

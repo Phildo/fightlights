@@ -159,7 +159,7 @@ void btn_pull(int i)
       else
       {
         strip_brightness = c>>1; //pot reading
-        printf("%d\n",strip_brightness);fflush(stdout);
+        //printf("%d\n",strip_brightness);fflush(stdout);
       }
     }
   }
