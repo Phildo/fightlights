@@ -4,9 +4,9 @@ arduino:
 
 .PHONY:force
 force: #manually edit this to force an arduino on a port
-	cd gpu_arduino; ARDUINO_PORT=/dev/ttyACM0 make upload
+	#cd gpu_arduino; ARDUINO_PORT=/dev/ttyACM0 make upload
 	#cd mio_arduino; ARDUINO_PORT=/dev/ttyUSB* make upload
-	#cd btn_arduino; ARDUINO_PORT=/dev/ttyUSB* make upload
+	cd btn_arduino; ARDUINO_PORT=/dev/ttyUSB* make upload
 
 .PHONY:gpu
 gpu:

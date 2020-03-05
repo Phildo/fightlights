@@ -2,8 +2,13 @@ ARDUINO_DIR = /usr/share/arduino
 
 USER_LIB_PATH = $(HOME)/sketchbook/libraries
 
-BOARD_TAG = nano328
-BOARD_SUB = atmega328old
+#use for old nanos (box buttons)
+#BOARD_TAG = nano328
+#BOARD_SUB = atmega328old
+
+#use for new nanos (big buttons)
+BOARD_TAG = uno
+BOARD_SUB = atmega328
 
 include /usr/share/arduino/Arduino.mk
 

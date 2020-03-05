@@ -27,6 +27,7 @@ int mio_buff_n;
 
 volatile extern unsigned char pong_state;
 volatile extern int pong_serve;
+extern unsigned int strip_brightness;
 #ifdef NOMIDDLEMAN
 //need separate per btn!
 unsigned char state[2];
@@ -152,7 +153,15 @@ void btn_pull(int i)
   {
     int c = serialGetchar(btn_fd[i]);
     if(c == -1) ser_kill_fd(&btn_fd[i]);
-    else if(c > -1) mio_btn_down[i] = c;
+    else if(c > -1)
+    {
+      if(c == 0 || c == 1) mio_btn_down[i] = c;
+      else
+      {
+        strip_brightness = c>>1; //pot reading
+        printf("%d\n",strip_brightness);fflush(stdout);
+      }
+    }
   }
 }
 #else

@@ -5,6 +5,7 @@ typedef unsigned char byte;
 
 //strip constants
 #define STRIP_NUM_LEDS 300
+#define STRIP_MAX_BRIGHTNESS 10
 
 //serial
 #define BAUD_RATE 1000000
@@ -20,6 +21,7 @@ typedef unsigned char byte;
 #define CMD_PREAMBLE "CMD_"
 #define CMD_WHORU '0'
 #define CMD_DATA '1'
+#define CMD_SYNC '2'
 #define ENC_STREAM 0
 #define ENC_RUN 1
 

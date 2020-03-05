@@ -163,6 +163,12 @@ int ser_do()
         #endif
         btn_fd[0] = fd;
         file_used[i] = fd;
+        //HACK btn0 just connected- request current pot!
+        whoru[cmd_len-1] = CMD_SYNC;
+        serialPut(fd,whoru,cmd_len);
+        serialFlush(fd);
+        whoru[cmd_len-1] = CMD_WHORU;
+        //HACK
         fd = 0;
         #ifdef MULTITHREAD
         pthread_mutex_unlock(&ser_lock);

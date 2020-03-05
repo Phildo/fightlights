@@ -12,6 +12,15 @@ color ncolor(byte r, byte g, byte b)
   return c;
 }
 
+extern unsigned int strip_brightness;
+color brightness_color(color in) //for global "strip brightness"
+{
+  int r = in.r*strip_brightness/STRIP_MAX_BRIGHTNESS;
+  int g = in.g*strip_brightness/STRIP_MAX_BRIGHTNESS;
+  int b = in.b*strip_brightness/STRIP_MAX_BRIGHTNESS;
+  return ncolor((byte)r,(byte)g,(byte)b);
+}
+
 color dampen_color(color in, float amt)
 {
   byte r = in.r*amt;

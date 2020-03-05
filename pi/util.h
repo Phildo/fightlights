@@ -6,6 +6,7 @@ typedef unsigned char byte;
 //color
 typedef struct { byte r; byte g; byte b; } color;
 color ncolor(byte r, byte g, byte b);
+color brightness_color(color in);
 color dampen_color(color in, float amt);
 color hdampen_color(color in, int amt);
 color mix_color(color a, color b);

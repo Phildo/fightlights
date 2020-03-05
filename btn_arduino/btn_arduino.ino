@@ -1,12 +1,21 @@
-#include <FastLED.h>
 #define NOMIDDLEMAN
+#define NOSTRIP
+//#define NORGB
+#define NOBUZZER
+#define NOMIC
+//#define NOPOT
+
 #ifndef NOMIDDLEMAN
 #include <NeoSWSerial.h>
 #endif
 
+#ifndef NOSTRIP
+#include <FastLED.h>
+#endif
+
 //customize
-#define PLAYER 1 //0 or 1
-#define STRIP_BRIGHTNESS 120 //255 //0-255
+#define PLAYER 0 //0 or 1
+#define STRIP_BRIGHTNESS 255 //255 //0-255
 #define BUZZER_MAX 300
 #define LED_UPDATE_T_MAX 10 //set too low and we drop serial input
 #define SIGNUP_T_MAX 300
@@ -32,6 +41,7 @@
 //enum
 #define CMD_WHORU '0'
 #define CMD_DATA '1'
+#define CMD_SYNC '2'
 
 //player constants
 #define PLAYER_0_R 0xFF
@@ -75,6 +85,7 @@
 // in
 #define MIC_PIN 2
 #define BTN_PIN 3
+#define POT_PIN A6
 #ifndef NOMIDDLEMAN
 #define MIO_RX_PIN 5
 #define MIO_TX_PIN 4
@@ -84,6 +95,10 @@
 #define LED_PIN 9
 #define STRIP_LED_PIN 10
 #define SPEAKER_PIN 11
+//CANNOT USE RGB LED WITH STRIP/BUZZER! (only issue is confliciting pins- shuffling pins might resolve it)
+#define RGB_R_PIN 9
+#define RGB_G_PIN 10
+#define RGB_B_PIN 11
 
 //modes
 #define MODE_SIGNUP 0
@@ -99,9 +114,11 @@
 #define MODE_PLAY_SPEED 10
 #define MODE_SCORE_SPEED 30
 
+#ifndef NOSTRIP
 //strip
 CRGB strip_leds[STRIP_NUM_LEDS];
 CRGB clear;
+#endif
 
 #ifndef NOMIDDLEMAN
 //softser
@@ -113,15 +130,19 @@ unsigned char mode;
 unsigned int mode_t;
 unsigned char mode_data;
 unsigned int mode_data_t;
-unsigned int ring_state;
+unsigned int strip_state;
+unsigned int rgb_state;
 //btn
 unsigned char btn_down;
 int since_btn_down_t;
 int btn_down_buzz;
+#ifndef NOMIC
 //mic
 unsigned int mic_hot;
 volatile unsigned int im_mic_hot;
 void mic_interrupt() { im_mic_hot = MIC_HOT_STAY; }
+#endif
+unsigned int pot_amt; //normalized between 0-10
 //led
 unsigned char led_update_t;
 
@@ -165,6 +186,12 @@ void cmd_data()
   Serial.write(btn_down);//good idea to update button status on any delta
 }
 
+void cmd_sync()
+{
+  Serial.write(btn_down);
+  Serial.write(pot_amt << 1);
+}
+
 void cmd_whoru()
 {
   Serial.write(AID);
@@ -186,12 +213,68 @@ void cmd_loop()
         switch(d)
         {
           case CMD_WHORU: cmd_whoru(); break;
-          case CMD_DATA:  cmd_data(); break;
+          case CMD_DATA:  cmd_data();  break;
+          case CMD_SYNC:  cmd_sync();  break;
         }
       }
     }
   }
 }
+
+#ifndef NOSTRIP
+void tickdraw_strip(unsigned long t_r, unsigned long t_g, unsigned long t_b, int speed)
+{
+  unsigned int target_i = strip_state/STRIP_NUM_VIRTUAL_PER_LED;
+  unsigned long shade   = strip_state%STRIP_NUM_VIRTUAL_PER_LED;
+  unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
+
+  unsigned long r;
+  unsigned long g;
+  unsigned long b;
+  strip_state = (strip_state+STRIP_NUM_VIRTUAL_LEDS+speed)%STRIP_NUM_VIRTUAL_LEDS;
+
+  r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+  g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+  b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+  unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
+  shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
+  r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+  g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+  b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+  unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
+  strip_leds[target_i] = target_color;
+  strip_leds[off_i] = off_color;
+  led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
+  if(led_update_t == 0) FastLED.show();
+  strip_leds[target_i] = 0x000000;
+  strip_leds[off_i]    = 0x000000;
+}
+#endif
+
+#ifndef NORGB
+void tickdraw_rgb(unsigned long t_r, unsigned long t_g, unsigned long t_b, int speed) //this is overly complex bc I just quickly copied tickdraw_strip- can be greatly simplified
+{
+  unsigned int slow = 10; //modifier on strip logic
+  unsigned long shade = (rgb_state%(STRIP_NUM_VIRTUAL_PER_LED*slow))/slow;
+
+  unsigned long r;
+  unsigned long g;
+  unsigned long b;
+  rgb_state = (rgb_state+(STRIP_NUM_VIRTUAL_LEDS*slow)+speed)%(STRIP_NUM_VIRTUAL_LEDS*slow);
+
+  r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
+  g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
+  b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
+  shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
+  led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
+  if(led_update_t == 0)
+  {
+    analogWrite(RGB_R_PIN,r);
+    analogWrite(RGB_G_PIN,g);
+    analogWrite(RGB_B_PIN,b);
+  }
+}
+#endif
 
 void setup()
 {
@@ -211,14 +294,25 @@ void setup()
   #endif
 
   //out
-  //pinMode(STRIP_LED_PIN,OUTPUT); //defer to FastLED
   pinMode(LED_PIN,OUTPUT);
+  #ifndef NOBUZZER
   pinMode(SPEAKER_PIN,OUTPUT);
+  #endif
+  #ifndef NORGB
+  pinMode(RGB_R_PIN,OUTPUT);
+  pinMode(RGB_G_PIN,OUTPUT);
+  pinMode(RGB_B_PIN,OUTPUT);
+  #endif
   pinMode(IO_PIN,OUTPUT);
   digitalWrite(IO_PIN,LOW);
   //in
+  #ifndef NOMIC
   pinMode(MIC_PIN,INPUT);
+  #endif
   pinMode(BTN_PIN,INPUT_PULLUP);
+  #if !defined NOPOT && PLAYER == 0
+  pinMode(POT_PIN,INPUT);
+  #endif
 
   /*
   //mic
@@ -232,6 +326,7 @@ void setup()
   im_mic_hot = 0;
   */
 
+  #ifndef NOSTRIP
   //init strip
   clear = CRGB(0x00,0x00,0x00);
   for(int i = 0; i < STRIP_NUM_LEDS; i++) strip_leds[i] = clear;
@@ -239,11 +334,12 @@ void setup()
   FastLED.setBrightness(STRIP_BRIGHTNESS);
   FastLED.setDither(0);
   FastLED.show();
+  #endif
 
   digitalWrite(LED_PIN,LOW);
 
   //init state
-  ring_state = 0;
+  strip_state = 0;
   btn_down = 0;
   since_btn_down_t = 0;
   btn_down_buzz = 0;
@@ -256,8 +352,19 @@ void setup()
 
 void loop()
 {
+  #ifndef NOMIC
   mic_hot = im_mic_hot;
   if(im_mic_hot) im_mic_hot--;
+  #endif
+
+  #if !defined NOPOT && PLAYER == 0
+  unsigned int new_pot_amt = analogRead(POT_PIN)*11/1024;
+  if(new_pot_amt > 10) new_pot_amt = 10;
+  if(new_pot_amt < 1)  new_pot_amt = 1;
+  if(pot_amt != new_pot_amt)
+    Serial.write(new_pot_amt << 1);
+  pot_amt = new_pot_amt;
+  #endif
 
   char btn_delta = 0;
   if(!digitalRead(BTN_PIN)) { if(!btn_down) { btn_delta =  1; btn_down_buzz = BUZZER_MAX/10; since_btn_down_t = 0; } btn_down = 1; btn_down_buzz++;  if(btn_down_buzz > BUZZER_MAX) btn_down_buzz = BUZZER_MAX*9/10; }
@@ -288,55 +395,25 @@ void loop()
   {
     case MODE_SIGNUP:
     {
+      #ifndef NOBUZZER
       //speaker
       if(btn_down_buzz) tone(SPEAKER_PIN,500+btn_down_buzz*10);
       else noTone(SPEAKER_PIN);
+      #endif
 
-      //ring
-      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
-
-      unsigned long t_r;
-      unsigned long t_g;
-      unsigned long t_b;
-      unsigned long r;
-      unsigned long g;
-      unsigned long b;
-      if(btn_down)
-      {
-        t_r = PLAYER_R;
-        t_g = PLAYER_G;
-        t_b = PLAYER_B;
-        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-MODE_SIGNUP_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-      else
-      {
-        t_r = OPPO_R;
-        t_g = OPPO_G;
-        t_b = OPPO_B;
-        ring_state = (ring_state+MODE_SIGNUP_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-
-      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
-      shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
-      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
-      strip_leds[target_i] = target_color;
-      strip_leds[off_i] = off_color;
-      led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
-      if(led_update_t == 0) FastLED.show();
-      strip_leds[target_i] = 0x000000;
-      strip_leds[off_i]    = 0x000000;
+      #ifndef NOSTRIP
+      if(btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SIGNUP_SPEED);
+      else         tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SIGNUP_SPEED);
+      #endif
+      #ifndef NORGB
+      if(btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SIGNUP_SPEED);
+      else         tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SIGNUP_SPEED);
+      #endif
     }
     break;
     case MODE_PLAY:
     {
+      #ifndef NOBUZZER
       if(mode_t < BUZZER_MAX) //play begins- launch
       {
         switch(mode_t%3)
@@ -351,104 +428,35 @@ void loop()
       else if(since_btn_down_t < BUZZER_MAX/5) //button pressed- could be hit/miss!
         tone(SPEAKER_PIN,1000+since_btn_down_t*20);
       else noTone(SPEAKER_PIN);
+      #endif
 
-      //ring
-      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
-
-      unsigned long t_r;
-      unsigned long t_g;
-      unsigned long t_b;
-      unsigned long r;
-      unsigned long g;
-      unsigned long b;
-      if(btn_down)
-      {
-        t_r = PLAYER_R;
-        t_g = PLAYER_G;
-        t_b = PLAYER_B;
-        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-MODE_PLAY_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-      else
-      {
-        t_r = OPPO_R;
-        t_g = OPPO_G;
-        t_b = OPPO_B;
-        ring_state = (ring_state+MODE_PLAY_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-
-      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
-      shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
-      r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
-      strip_leds[target_i] = target_color;
-      strip_leds[off_i] = off_color;
-      led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
-      if(led_update_t == 0) FastLED.show();
-      strip_leds[target_i] = 0x000000;
-      strip_leds[off_i]    = 0x000000;
+      #ifndef NOSTRIP
+      if(btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_PLAY_SPEED);
+      else         tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_PLAY_SPEED);
+      #endif
+      #ifndef NORGB
+      if(btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_PLAY_SPEED);
+      else         tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_PLAY_SPEED);
+      #endif
     }
     break;
     case MODE_SCORE:
     {
+      #ifndef NOBUZZER
       //speaker
       if(mode_data == MODE_DATA_ME) tone(SPEAKER_PIN,500+              ((mode_t*4)%BUZZER_MAX)*10);
       else                          tone(SPEAKER_PIN,500+BUZZER_MAX*10-((mode_t*4)%BUZZER_MAX)*10);
+      #endif
 
-      //ring
-      unsigned long t_r;
-      unsigned long t_g;
-      unsigned long t_b;
-      unsigned long r;
-      unsigned long g;
-      unsigned long b;
-      if(btn_down)
-      {
-        t_r = PLAYER_R;
-        t_g = PLAYER_G;
-        t_b = PLAYER_B;
-        ring_state = (ring_state+STRIP_NUM_VIRTUAL_LEDS-MODE_SCORE_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-      else
-      {
-        t_r = OPPO_R;
-        t_g = OPPO_G;
-        t_b = OPPO_B;
-        ring_state = (ring_state+MODE_SCORE_SPEED)%STRIP_NUM_VIRTUAL_LEDS;
-      }
-
-      unsigned int target_i = ring_state/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long shade   = ring_state%STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned int off_i = (target_i+(STRIP_NUM_LEDS-1))%STRIP_NUM_LEDS;
-      unsigned long biased_shade;
-
-      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-shade;
-      biased_shade = biased_shade*biased_shade/STRIP_NUM_VIRTUAL_PER_LED;
-      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-biased_shade;
-      r = biased_shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = biased_shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = biased_shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long target_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
-      shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
-      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-shade;
-      biased_shade = biased_shade*biased_shade/STRIP_NUM_VIRTUAL_PER_LED;
-      biased_shade = STRIP_NUM_VIRTUAL_PER_LED-biased_shade;
-      r = biased_shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-      g = biased_shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-      b = biased_shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-      unsigned long off_color = (unsigned long)(r << 16) | (unsigned long)(g << 8) | b;
-      strip_leds[target_i] = target_color;
-      strip_leds[off_i] = off_color;
-      led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
-      if(led_update_t == 0) FastLED.show();
-      strip_leds[target_i] = 0x000000;
-      strip_leds[off_i]    = 0x000000;
+      #ifndef NOSTRIP
+      //TODO: should be "who won", not "btn down"
+      if(btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SCORE_SPEED);
+      else         tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SCORE_SPEED);
+      #endif
+      #ifndef NORGB
+      if(btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SCORE_SPEED);
+      else         tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SCORE_SPEED);
+      #endif
     }
     break;
   }

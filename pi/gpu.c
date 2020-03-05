@@ -14,6 +14,7 @@
 
 int gpu_killed;
 volatile extern color strip_leds[STRIP_NUM_LEDS];
+unsigned int strip_brightness; //1-10
 
 extern int gpu_fd;
 byte *gpu_buff;
@@ -32,6 +33,8 @@ void gpu_buff_init()
   memset(gpu_buff,0,sizeof(byte)*gpu_buff_n+1);
   strcpy(gpu_buff,CMD_PREAMBLE);
   gpu_buff[strlen(CMD_PREAMBLE)] = CMD_DATA;
+
+  strip_brightness = 1; //min- don't blind people by default
 }
 
 void gpu_ser_init() //just wait to be given fd by ser
@@ -74,7 +77,7 @@ void compress_strip()
     n_commands++;
     gpu_buff[gpu_buff_i] = ENC_STREAM; cmd_enc_i = gpu_buff_i; gpu_buff_i++;
     gpu_buff[gpu_buff_i] = 1;          cmd_n_i   = gpu_buff_i; gpu_buff_i++;
-    color c = strip_leds[strip_i]; strip_i++;
+    color c = brightness_color(strip_leds[strip_i]); strip_i++;
     gpu_buff[gpu_buff_i] = c.r; gpu_buff_i++;
     gpu_buff[gpu_buff_i] = c.g; gpu_buff_i++;
     gpu_buff[gpu_buff_i] = c.b; gpu_buff_i++;
@@ -83,7 +86,7 @@ void compress_strip()
 
     while(stream_len < 0xFF && strip_i < STRIP_NUM_LEDS)
     {
-      color nc = strip_leds[strip_i]; strip_i++;
+      color nc = brightness_color(strip_leds[strip_i]); strip_i++;
       stream_len++;
       if(color_cmp(nc,c)) run_len++;
       else                run_len = 1;
@@ -107,7 +110,7 @@ void compress_strip()
           gpu_buff[cmd_enc_i] = ENC_RUN;
           gpu_buff_i -= 3;
         }
-        while(run_len < 0xFF && strip_i < STRIP_NUM_LEDS && color_cmp(strip_leds[strip_i],c))
+        while(run_len < 0xFF && strip_i < STRIP_NUM_LEDS && color_cmp(brightness_color(strip_leds[strip_i]),c))
         {
           run_len++;
           strip_i++;
