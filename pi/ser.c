@@ -21,8 +21,8 @@ int mio_fd;
 
 int ser_killed;
 
-static const char *file[]    = {"/dev/ttyUSB0","/dev/ttyACM0","/dev/ttyUSB1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4"};
-static int file_used[] = {             0,             0,             0,             0,             0,             0};
+static const char *file[]    = {"/dev/ttyUSB0","/dev/ttyACM0","/dev/ttyUSB1","/dev/ttyACM1","/dev/ttyUSB2","/dev/ttyUSB3","/dev/ttyUSB4"};
+static int file_used[] = {             0,             0,             0,             0,             0,             0,             0};
 
 static int cmd_len;
 static char *whoru;
@@ -44,8 +44,17 @@ void ser_kill_fd(int *fd)
   for(int i = 0; i < sizeof(file)/sizeof(char *); i++)
     if(file_used[i] == *fd) file_used[i] = 0;
   *fd = 0;
+  if(!gpu_fd); printf("gpu fd 0\n");
+  #ifdef NOMIDDLEMAN
+  for(int i = 0; i < 2; i++)
+    if(!btn_fd[i]) printf("btn %d fd 0\n",i);
+  #else
+  if(!mio_fd); printf("mio fd 0\n");
+  #endif
+  fflush(stdout);
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&ser_lock);
+  printf("sending ser_requested\n");fflush(stdout);
   pthread_cond_signal(&ser_requested_cond);
   #endif
   #ifdef DEBUG_HANDSHAKE
@@ -95,17 +104,23 @@ int ser_do()
   pthread_mutex_lock(&ser_lock);
   if(ser_killed) { pthread_mutex_unlock(&ser_lock); return 0; }
   #ifdef NOMIDDLEMAN
-  while(gpu_fd && btn_fd[0] && btn_fd[1] && !ser_killed) { pthread_cond_wait(&ser_requested_cond,&ser_lock); } //uniquely needs "ser_killed", because shouldn't lie about fds, even in death
+  while(gpu_fd && btn_fd[0] && btn_fd[1] && !ser_killed) { printf("how's gpu fd now %d?\n",gpu_fd);fflush(stdout); pthread_cond_wait(&ser_requested_cond,&ser_lock); printf("maybe got ser_requested!?\n");fflush(stdout); } //uniquely needs "ser_killed", because shouldn't lie about fds, even in death
+  printf("am I out?\n");
   #else
   while(gpu_fd && mio_fd && !ser_killed) { pthread_cond_wait(&ser_requested_cond,&ser_lock); } //uniquely needs "ser_killed", because shouldn't lie about fds, even in death
   #endif
+  printf("did I get here?\n");fflush(stdout);
+  printf("is ser_killed? %d\n",ser_killed);fflush(stdout);
   if(ser_killed) { pthread_mutex_unlock(&ser_lock); return 0; }
   // do nothing and immediately unlock (lock is purely for sake of sleeping til command)
+  printf("did I get there?\n");fflush(stdout);
   pthread_mutex_unlock(&ser_lock);
+  printf("did I get where?\n");fflush(stdout);
   #endif
   #ifdef DEBUG_HANDSHAKE
   printf("ser check\n");fflush(stdout);
   #endif
+  printf("did I get cher?\n");fflush(stdout);
 
   for(int i = 0; i < sizeof(file)/sizeof(char *); i++)
   {
@@ -224,6 +239,7 @@ int ser_do()
 
 void ser_kill()
 {
+  printf("ser killed\n");fflush(stdout);
   ser_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck

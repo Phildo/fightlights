@@ -12,6 +12,9 @@ color hdampen_color(color in, int amt);
 color mix_color(color a, color b);
 int color_cmp(color a, color b);
 
+//math
+int clamp(int v, int min, int max);
+
 //timing
 typedef unsigned long long now_t;
 extern now_t ms_now_t;

@@ -63,6 +63,7 @@ static color pink;
 static color color_a;
 static color color_b;
 static color color_ball;
+static color color_streak;
 static color color_zone;
 
 volatile color strip_leds[STRIP_NUM_LEDS];
@@ -83,6 +84,7 @@ void pong_colors_init()
   color_a = red;
   color_b = blue;
   color_ball = white;
+  color_streak = dampen_color(color_ball,0.2);
   color_zone = pink;
 }
 
@@ -120,11 +122,13 @@ void draw_base_strip()
 
 void fill_virtual_range(color c, int vfrom, int vto)
 {
-  const float v = STRIP_NUM_VIRTUAL_PER_LED; //shorthand conversion
+  vfrom = clamp(vfrom,0,STRIP_NUM_VIRTUAL_LEDS-1);
+  vto   = clamp(vto,  0,STRIP_NUM_VIRTUAL_LEDS-1);
+  const float v =  STRIP_NUM_VIRTUAL_PER_LED; //shorthand conversion
   int from = vfrom/STRIP_NUM_VIRTUAL_PER_LED;
   int to   = vto  /STRIP_NUM_VIRTUAL_PER_LED;
-  int fmv = vfrom%STRIP_NUM_VIRTUAL_PER_LED;
-  int tmv =   vto%STRIP_NUM_VIRTUAL_PER_LED;
+  int fmv = vfrom %STRIP_NUM_VIRTUAL_PER_LED;
+  int tmv =   vto %STRIP_NUM_VIRTUAL_PER_LED;
   if(vfrom > vto)
   { //swap em
     int t = from;
@@ -146,10 +150,8 @@ void fill_virtual_range(color c, int vfrom, int vto)
 
 void draw_ball()
 {
-  //fill out range
-  //fill_virtual_range(color_ball, prev_virtual_ball_p, virtual_ball_p);
-  //fill out AA ball
-  fill_virtual_range(color_ball, fmax(0,virtual_ball_p-STRIP_NUM_VIRTUAL_PER_LED/2),fmin(virtual_ball_p+STRIP_NUM_VIRTUAL_PER_LED/2,STRIP_NUM_VIRTUAL_LEDS-1));
+  fill_virtual_range(color_streak, prev_virtual_ball_p, virtual_ball_p);
+  strip_leds[virtual_ball_p/STRIP_NUM_VIRTUAL_PER_LED] = color_ball;
 }
 
 void set_state(unsigned char s);
@@ -252,7 +254,6 @@ void set_state(unsigned char s)
 }
 
 void pong_die();
-//public
 
 int pong_do()
 {
@@ -263,6 +264,20 @@ int pong_do()
   //get mio
   btn_a_down = mio_btn_down[0];
   btn_b_down = mio_btn_down[1];
+
+  //HACK HITS
+  {
+    if(pong_state == STATE_SIGNUP)
+    {
+      btn_a_down = 1;
+      btn_b_down = 1;
+    }
+    if(pong_state == STATE_PLAY)
+    {
+           if(pong_serve ==  1 && ball_p >= STRIP_NUM_LEDS-zone_b_len) btn_b_down = 1;
+      else if(pong_serve == -1 && ball_p <  0             +zone_a_len) btn_a_down = 1;
+    }
+  }
 
   //read buttons
   if(btn_a_down) { btn_a_down_t++;   btn_a_up_t = 0; }
@@ -451,40 +466,7 @@ int pong_do()
           if(missile_b_hit_p+off <  STRIP_NUM_LEDS) strip_leds[missile_b_hit_p+off] = dampen_color(color_ball,(flash-1.0-off)/flash);
         }
 
-        //draw ball
         draw_ball();
-        /*
-        strip_leds[ball_p] = color_ball;
-        if(prev_ball_p+1 < ball_p)
-        {
-          for(int f = prev_ball_p+1; f < ball_p; f++)
-            strip_leds[f] = dampen_color(color_ball,(float)(f-prev_ball_p)/(prev_ball_p-ball_p));
-          if(ball_p+1 <= back(0))
-          {
-            long amt = (virtual_ball_p*STRIP_NUM_LEDS)%STRIP_NUM_VIRTUAL_LEDS;
-            if(amt > STRIP_NUM_VIRTUAL_LEDS/2+1)
-            {
-              amt = (amt-STRIP_NUM_VIRTUAL_LEDS/2)*2;
-              strip_leds[ball_p+1] = dampen_color(color_ball,(float)amt/STRIP_NUM_VIRTUAL_LEDS);
-            }
-          }
-        }
-        else if(prev_ball_p-1 > ball_p)
-        {
-          for(int f = prev_ball_p-1; f > ball_p; f--)
-            strip_leds[f] = dampen_color(color_ball,(float)(f-prev_ball_p)/(prev_ball_p-ball_p));
-          if(ball_p-1 >= 0)
-          {
-            long amt = (virtual_ball_p*STRIP_NUM_LEDS)%STRIP_NUM_VIRTUAL_LEDS;
-            if(amt < STRIP_NUM_VIRTUAL_LEDS/2)
-            {
-              amt = STRIP_NUM_VIRTUAL_LEDS-(amt*2);
-              strip_leds[ball_p-1] = dampen_color(color_ball,(float)amt/STRIP_NUM_VIRTUAL_LEDS);
-            }
-          }
-        }
-        */
-
       }
         break;
       case STATE_SCORE:
@@ -524,7 +506,6 @@ int pong_do()
 
         //draw ball
         draw_ball();
-        //strip_leds[ball_p] = color_ball;
       }
         break;
       case STATE_DEBUG:
@@ -548,6 +529,7 @@ int pong_do()
 
 void pong_kill()
 {
+  printf("pong killed\n");fflush(stdout);
   pong_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck

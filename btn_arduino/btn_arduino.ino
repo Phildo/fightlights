@@ -14,7 +14,7 @@
 #endif
 
 //customize
-#define PLAYER 0 //0 or 1
+#define PLAYER 1 //0 or 1
 #define STRIP_BRIGHTNESS 255 //255 //0-255
 #define BUZZER_MAX 300
 #define LED_UPDATE_T_MAX 10 //set too low and we drop serial input
@@ -254,18 +254,30 @@ void tickdraw_strip(unsigned long t_r, unsigned long t_g, unsigned long t_b, int
 #ifndef NORGB
 void tickdraw_rgb(unsigned long t_r, unsigned long t_g, unsigned long t_b, int speed) //this is overly complex bc I just quickly copied tickdraw_strip- can be greatly simplified
 {
-  unsigned int slow = 10; //modifier on strip logic
+  unsigned int slow = 1; //modifier on strip logic
   unsigned long shade = (rgb_state%(STRIP_NUM_VIRTUAL_PER_LED*slow))/slow;
 
   unsigned long r;
   unsigned long g;
   unsigned long b;
-  rgb_state = (rgb_state+(STRIP_NUM_VIRTUAL_LEDS*slow)+speed)%(STRIP_NUM_VIRTUAL_LEDS*slow);
+  int n = STRIP_NUM_VIRTUAL_LEDS*slow;
+  rgb_state = (rgb_state+n+speed)%n;
 
-  r = shade*t_r/STRIP_NUM_VIRTUAL_PER_LED;
-  g = shade*t_g/STRIP_NUM_VIRTUAL_PER_LED;
-  b = shade*t_b/STRIP_NUM_VIRTUAL_PER_LED;
-  shade = STRIP_NUM_VIRTUAL_PER_LED-shade-1;
+  if(rgb_state < STRIP_NUM_VIRTUAL_LEDS*slow/2)
+  {
+    unsigned long shade = rgb_state*2;
+    r = shade*t_r/n;
+    g = shade*t_g/n;
+    b = shade*t_b/n;
+  }
+  else
+  {
+    unsigned long shade = (n-rgb_state)*2;
+    r = shade*t_r/n;
+    g = shade*t_g/n;
+    b = shade*t_b/n;
+  }
+
   led_update_t = (led_update_t+1)%LED_UPDATE_T_MAX;
   if(led_update_t == 0)
   {
@@ -402,12 +414,12 @@ void loop()
       #endif
 
       #ifndef NOSTRIP
-      if(btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SIGNUP_SPEED);
-      else         tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SIGNUP_SPEED);
+      if(!btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SIGNUP_SPEED);
+      else          tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SIGNUP_SPEED);
       #endif
       #ifndef NORGB
-      if(btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SIGNUP_SPEED);
-      else         tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SIGNUP_SPEED);
+      if(!btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SIGNUP_SPEED);
+      else          tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SIGNUP_SPEED);
       #endif
     }
     break;
@@ -431,12 +443,12 @@ void loop()
       #endif
 
       #ifndef NOSTRIP
-      if(btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_PLAY_SPEED);
-      else         tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_PLAY_SPEED);
+      if(!btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_PLAY_SPEED);
+      else          tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_PLAY_SPEED);
       #endif
       #ifndef NORGB
-      if(btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_PLAY_SPEED);
-      else         tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_PLAY_SPEED);
+      if(!btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_PLAY_SPEED);
+      else          tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_PLAY_SPEED);
       #endif
     }
     break;
@@ -450,12 +462,12 @@ void loop()
 
       #ifndef NOSTRIP
       //TODO: should be "who won", not "btn down"
-      if(btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SCORE_SPEED);
-      else         tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SCORE_SPEED);
+      if(!btn_down) tickdraw_strip(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SCORE_SPEED);
+      else          tickdraw_strip(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SCORE_SPEED);
       #endif
       #ifndef NORGB
-      if(btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SCORE_SPEED);
-      else         tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SCORE_SPEED);
+      if(!btn_down) tickdraw_rgb(PLAYER_R,PLAYER_G,PLAYER_B, MODE_SCORE_SPEED);
+      else          tickdraw_rgb(  OPPO_R,  OPPO_G,  OPPO_B,-MODE_SCORE_SPEED);
       #endif
     }
     break;

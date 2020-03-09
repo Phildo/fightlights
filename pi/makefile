@@ -3,7 +3,10 @@ SRC=*.c
 HRC=*.h
 
 $(OUT): $(SRC) $(HRC)
-	gcc $(SRC) -lm -lwiringPi -lpthread -lasound -lsndfile -o $(OUT)
+	gcc -g3 $(SRC) -lm -lwiringPi -lpthread -lasound -lsndfile -o $(OUT)
+
+debug: $(OUT)
+	gdb $(OUT)
 
 run: $(OUT)
 	./$(OUT)

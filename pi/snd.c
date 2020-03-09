@@ -6,23 +6,32 @@
 
 #define PCM_DEVICE "default"
 
+int snd_killed;
 volatile int snd_play = -1;
 
-static const char *filename[] = {"../assets/test.wav","../assets/test.wav","../assets/test.wav"};
+static const char *assets_folder = "/home/phildo/projects/fightlights/assets";
+static const char *filename[] = {"test.wav","test.wav","test.wav"};
+static char **filepath;
 static SNDFILE **file;
 static SF_INFO *sfinfo;
 
 void snd_init()
 {
   int n_files = sizeof(filename)/sizeof(const char *);
+  filepath   = malloc(sizeof(char *)   *n_files);
   file       = malloc(sizeof(SNDFILE *)*n_files);
   sfinfo     = malloc(sizeof(SF_INFO)  *n_files);
 
+  int assets_len = strlen(assets_folder);
   for(int i = 0; i < n_files; i++)
   {
-    if(!(file[i] = sf_open(filename[i], SFM_READ, &sfinfo[i])))
+    filepath[i] = malloc(sizeof(char)*255);//255 = max filepath length
+    strcpy(filepath[i],assets_folder);
+    filepath[i][assets_len] = '/';
+    strcpy(filepath[i]+assets_len+1,filename[i]);
+    if(!(file[i] = sf_open(filepath[i], SFM_READ, &sfinfo[i])))
     {
-      fprintf(stderr,"Failed opening sound file %s\n",filename[i]);
+      fprintf(stderr,"Failed opening sound file %s\n",filepath[i]);
       exit(1);
     }
     /*
@@ -32,10 +41,15 @@ void snd_init()
     fprintf(stderr,"Format: %d\n", sfinfo[i].format);
     */
   }
+
+  snd_killed = 0;
 }
+
+void snd_die();
 
 int snd_do()
 {
+  if(snd_killed) { snd_die(); return 0; }
   while(snd_play != -1)
   {
     int i = snd_play;
@@ -108,6 +122,13 @@ int snd_do()
 
 void snd_kill()
 {
+  printf("snd killed\n");fflush(stdout);
+  snd_killed = 1;
   snd_play = -1;
+}
+
+void snd_die()
+{
+
 }
 

@@ -223,6 +223,7 @@ int mio_do()
 
 void mio_kill()
 {
+  printf("mio killed\n");fflush(stdout);
   mio_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck

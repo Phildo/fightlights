@@ -63,6 +63,14 @@ int color_cmp(color a, color b)
          a.b == b.b;
 }
 
+//math
+int clamp(int v, int min, int max)
+{
+  if(v < min) return min;
+  if(v > max) return max;
+  return v;
+}
+
 //timing
 now_t ms_now_t;
 now_t s_now_t;

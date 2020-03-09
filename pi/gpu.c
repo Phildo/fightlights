@@ -37,8 +37,89 @@ void gpu_buff_init()
   strip_brightness = 1; //min- don't blind people by default
 }
 
+void print_disassembly()
+{
+  int i = 0;
+  char d;
+
+  for(int j = 0; j < 5; j++)
+  {
+  d = gpu_buff[i++];
+  printf("%03d %02x %c : ", d, d, d);
+  printf("%c\n",d);
+  }
+
+  unsigned int dcmd_n = 0;
+  d = gpu_buff[i++];
+  printf("%03d %02x %c : ", d, d, d);
+  dcmd_n = d;
+  printf("%d cmds\n",d);
+
+  int strip_i = 0;
+  while(dcmd_n) //perform commands
+  {
+    d = gpu_buff[i++];
+    printf("%03d %02x %c : ", d, d, d);
+    if(d == ENC_STREAM)
+    {
+      printf("STREAM\n");
+      d = gpu_buff[i++];
+      printf("%03d %02x %c : ", d, d, d);
+      char n = d;
+      printf("%d LEDS\n",n);
+      while(n)
+      {
+        d = gpu_buff[i++];
+        printf("%03d %02x %c : ", d, d, d);
+        char r = d;
+        printf("r %d\n",r);
+        d = gpu_buff[i++];
+        printf("%03d %02x %c : ", d, d, d);
+        char g = d;
+        printf("g %d\n",g);
+        d = gpu_buff[i++];
+        printf("%03d %02x %c : ", d, d, d);
+        char b = d;
+        printf("b %d\n",b);
+        //CRGB color = CRGB(r,g,b);
+        //strip_leds[strip_i++] = color;
+        n--;
+      }
+    }
+    else if(d == ENC_RUN)
+    {
+      printf("RUN\n");
+      d = gpu_buff[i++];
+      printf("%03d %02x %c : ", d, d, d);
+      char n = d;
+      printf("%d length\n",n);
+      d = gpu_buff[i++];
+      printf("%03d %02x %c : ", d, d, d);
+      char r = d;
+      printf("r %d\n",r);
+      d = gpu_buff[i++];
+      printf("%03d %02x %c : ", d, d, d);
+      char g = d;
+      printf("g %d\n",g);
+      d = gpu_buff[i++];
+      printf("%03d %02x %c : ", d, d, d);
+      char b = d;
+      printf("b %d\n",b);
+      //CRGB color = CRGB(r,g,b);
+      //while(n)
+      //{
+        //strip_leds[strip_i++] = color;
+        //n--;
+      //}
+    }
+    dcmd_n--;
+  }
+  fflush(stdout);
+}
+
 void gpu_ser_init() //just wait to be given fd by ser
 {
+  printf("GPU TRYING FOR NEW FD\n");
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
   if(gpu_killed) { pthread_mutex_unlock(&ser_lock); return; }
@@ -51,7 +132,12 @@ void gpu_ser_init() //just wait to be given fd by ser
 
 void gpu_push()
 {
-  if(serialPut(gpu_fd,gpu_buff,gpu_buff_i) == -1) ser_kill_fd(&gpu_fd);
+  if(serialPut(gpu_fd,gpu_buff,gpu_buff_i) == -1)
+  {
+    ser_kill_fd(&gpu_fd);
+    printf("gpu buff i: %d\n",gpu_buff_i);
+    //print_disassembly();
+  }
   else serialFlush(gpu_fd);
 }
 
@@ -61,10 +147,17 @@ void compress_strip()
   int strip_i = 0;
   byte n_commands = 0;
   #ifdef MULTITHREAD
+  //HACK
+  /*
+  static now_t wait_start = 0;
+  now_t since = now()-wait_start;
+  wait_start = now();
+  */
   pthread_mutex_lock(&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   while(!strip_ready) pthread_cond_wait(&strip_ready_cond,&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
+  //printf("\% gpu waited %d\n",(float)(now()-wait_start)/since);
   #endif
 
   int cmd_enc_i;
@@ -165,6 +258,7 @@ int gpu_do()
 
 void gpu_kill()
 {
+  printf("gpu killed\n");fflush(stdout);
   gpu_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck
