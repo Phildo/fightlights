@@ -17,7 +17,7 @@
 int pong_killed;
 
 static unsigned int t_mod_twelvepi_100;
-volatile unsigned char pong_state;
+unsigned char pong_state;
 static unsigned int state_t;
 static int speed;
 static int zone_a_len;
@@ -26,10 +26,10 @@ static long prev_virtual_ball_p;
 static long virtual_ball_p;
 static long prev_ball_p;
 static long ball_p;
-volatile int pong_serve;
+int pong_serve;
 static int server;
 static int bounce;
-volatile extern unsigned char mio_btn_down[2];
+extern unsigned char mio_btn_down[2];
 static unsigned char btn_a_down;
 static unsigned int btn_a_down_t;
 static unsigned int btn_a_press_t;
@@ -44,7 +44,7 @@ static unsigned int missile_a_hit_t;
 static int btn_b_hit_p;
 static int missile_b_hit_p;
 static unsigned int missile_b_hit_t;
-volatile extern int snd_play;
+extern int snd_play;
 
 //vis state
 //signup
@@ -66,7 +66,7 @@ static color color_ball;
 static color color_streak;
 static color color_zone;
 
-volatile color strip_leds[STRIP_NUM_LEDS];
+color strip_leds[STRIP_NUM_LEDS];
 
 void pong_colors_init()
 {

@@ -13,7 +13,7 @@
 #include "ser.h"
 
 int gpu_killed;
-volatile extern color strip_leds[STRIP_NUM_LEDS];
+extern color strip_leds[STRIP_NUM_LEDS];
 unsigned int strip_brightness; //1-10
 
 extern int gpu_fd;
@@ -119,7 +119,6 @@ void print_disassembly()
 
 void gpu_ser_init() //just wait to be given fd by ser
 {
-  printf("GPU TRYING FOR NEW FD\n");
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
   if(gpu_killed) { pthread_mutex_unlock(&ser_lock); return; }
@@ -135,7 +134,6 @@ void gpu_push()
   if(serialPut(gpu_fd,gpu_buff,gpu_buff_i) == -1)
   {
     ser_kill_fd(&gpu_fd);
-    printf("gpu buff i: %d\n",gpu_buff_i);
     //print_disassembly();
   }
   else serialFlush(gpu_fd);
@@ -147,17 +145,10 @@ void compress_strip()
   int strip_i = 0;
   byte n_commands = 0;
   #ifdef MULTITHREAD
-  //HACK
-  /*
-  static now_t wait_start = 0;
-  now_t since = now()-wait_start;
-  wait_start = now();
-  */
   pthread_mutex_lock(&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
   while(!strip_ready) pthread_cond_wait(&strip_ready_cond,&strip_lock);
   if(gpu_killed) { pthread_mutex_unlock(&strip_lock); return; }
-  //printf("\% gpu waited %d\n",(float)(now()-wait_start)/since);
   #endif
 
   int cmd_enc_i;
@@ -222,20 +213,13 @@ void compress_strip()
     }
     if(stream_len) gpu_buff[cmd_n_i] = stream_len;
   }
+
   gpu_buff[strlen(CMD_PREAMBLE)+1] = n_commands;
   gpu_buff[gpu_buff_i] = '\0';
   strip_ready = 0;
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&strip_lock);
   #endif
-  //printf("%d\n",gpu_buff_i);
-  /*
-  printf("BEGIN\n");
-  for(int i = 0; i < gpu_buff_i; i++)
-    printf("%03d %02x %c\n", gpu_buff[i], gpu_buff[i], gpu_buff[i]);
-  printf("END\n");
-  printf("\n");
-  */
 }
 
 void gpu_die();

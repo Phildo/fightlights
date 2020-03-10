@@ -7,7 +7,7 @@
 #define PCM_DEVICE "default"
 
 int snd_killed;
-volatile int snd_play = -1;
+int snd_play = -1;
 
 static const char *assets_folder = "/home/phildo/projects/fightlights/assets";
 static const char *filename[] = {"test.wav","test.wav","test.wav"};

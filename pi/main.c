@@ -163,22 +163,22 @@ void init_threads()
   pthread_cond_init(&strip_ready_cond,NULL);
 
   err = pthread_create(&pong_thread, NULL, &pong_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
   err = pthread_create(&ser_thread, NULL, &ser_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
   err = pthread_create(&gpu_thread, NULL, &gpu_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
   err = pthread_create(&snd_thread, NULL, &snd_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
   #ifdef NOMIDDLEMAN
   for(int i = 0; i < 2; i++)
   {
     err = pthread_create(&btn_thread[i], NULL, &btn_thread_main, (void *)i);
-    if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+    if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
   }
   #else
   err = pthread_create(&mio_thread, NULL, &mio_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s", strerror(err)); exit(-1); }
+  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
   #endif
 }
 

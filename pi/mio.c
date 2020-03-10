@@ -25,8 +25,8 @@ byte *mio_buff;
 int mio_buff_n;
 #endif
 
-volatile extern unsigned char pong_state;
-volatile extern int pong_serve;
+extern unsigned char pong_state;
+extern int pong_serve;
 extern unsigned int strip_brightness;
 #ifdef NOMIDDLEMAN
 //need separate per btn!
@@ -36,7 +36,7 @@ int serve[2];
 unsigned char state;
 unsigned char serve;
 #endif
-volatile unsigned char mio_btn_down[2];
+unsigned char mio_btn_down[2];
 
 #ifdef NOMIDDLEMAN
 void btn_buff_init()
