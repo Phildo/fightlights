@@ -4,6 +4,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "wiringSerial.h"
 
@@ -29,14 +30,22 @@ static char *whoru;
 static int rsp_len;
 static char *rsp;
 
+void ser_debug(char *fmt, ...)
+{
+  printf("SER: ");
+  va_list myargs;
+  va_start(myargs, fmt);
+  vprintf(fmt, myargs);
+  va_end(myargs);
+  fflush(stdout);
+}
+
 void ser_die();
-//public
-int ser_ok() { return !ser_killed; }
 
 void ser_kill_fd(int *fd)
 {
   #ifdef DEBUG_HANDSHAKE
-  printf("killing %d\n",*fd);fflush(stdout);
+  ser_debug("killing %d\n",*fd);
   #endif
   serialClose(*fd);
   #ifdef MULTITHREAD
@@ -47,28 +56,27 @@ void ser_kill_fd(int *fd)
   *fd = 0;
   #ifdef DEBUG_HANDSHAKE
   //check killed fds
-  if(!gpu_fd); printf("gpu fd 0\n");
+  if(!gpu_fd); ser_debug("gpu fd 0\n");
   #ifdef NOMIDDLEMAN
   for(int i = 0; i < 2; i++)
-    if(!btn_fd[i]) printf("btn %d fd 0\n",i);
+    if(!btn_fd[i]) ser_debug("btn %d fd 0\n",i);
   #else
-  if(!mio_fd); printf("mio fd 0\n");
+  if(!mio_fd); ser_debug("mio fd 0\n");
   #endif
-  fflush(stdout);
   #endif
   #ifdef MULTITHREAD
   pthread_mutex_unlock(&ser_lock);
   pthread_cond_signal(&ser_requested_cond);
   #endif
   #ifdef DEBUG_HANDSHAKE
-  printf("killed fd\n");fflush(stdout);
+  ser_debug("killed fd\n");
   #endif
 }
 
 void ser_init()
 {
   #ifdef DEBUG_HANDSHAKE
-  printf("ser init\n");fflush(stdout);
+  ser_debug("init\n");
   #endif
   gpu_fd = 0;
   #ifdef NOMIDDLEMAN
@@ -101,7 +109,7 @@ int ser_do()
   //run through available files
 
   #ifdef DEBUG_HANDSHAKE
-  printf("ser waiting\n");fflush(stdout);
+  ser_debug("waiting\n");
   #endif
   #ifdef MULTITHREAD
   pthread_mutex_lock(&ser_lock);
@@ -116,14 +124,14 @@ int ser_do()
   pthread_mutex_unlock(&ser_lock);
   #endif
   #ifdef DEBUG_HANDSHAKE
-  printf("ser check\n");fflush(stdout);
+  ser_debug("check\n");
   #endif
 
   for(int i = 0; i < sizeof(file)/sizeof(char *); i++)
   {
     if(file_used[i]) continue;
     #ifdef DEBUG_HANDSHAKE
-    printf("checking %s\n",file[i]);fflush(stdout);
+    ser_debug("checking %s\n",file[i]);
     #endif
     fd = serialOpen(file[i], BAUD_RATE);
     if(fd > 0) sleep(3);
@@ -145,13 +153,13 @@ int ser_do()
       serialFlush(fd);
       if(rsp[rsp_i-1] == '\n') rsp[rsp_i-1] = '\0';
       #ifdef DEBUG_HANDSHAKE
-      printf("response: %s\n",rsp);fflush(stdout);
+      ser_debug("response: %s\n",rsp);
       #endif
 
       if(!gpu_fd && strcmp(rsp,GPU_AID) == 0)
       {
         #ifdef DEBUG_HANDSHAKE
-        printf("found GPU\n");fflush(stdout);
+        ser_debug("found GPU\n");
         #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
@@ -169,7 +177,7 @@ int ser_do()
       else if(!btn_fd[0] && strcmp(rsp,BTN0_AID) == 0)
       {
         #ifdef DEBUG_HANDSHAKE
-        printf("found BTN0\n");fflush(stdout);
+        ser_debug("found BTN0\n");
         #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
@@ -191,7 +199,7 @@ int ser_do()
       else if(!btn_fd[1] && strcmp(rsp,BTN1_AID) == 0)
       {
         #ifdef DEBUG_HANDSHAKE
-        printf("found BTN1\n");fflush(stdout);
+        ser_debug("found BTN1\n");
         #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
@@ -208,7 +216,7 @@ int ser_do()
       else if(!mio_fd && strcmp(rsp,MIO_AID) == 0)
       {
         #ifdef DEBUG_HANDSHAKE
-        printf("found MIO\n");fflush(stdout);
+        ser_debug("found MIO\n");
         #endif
         #ifdef MULTITHREAD
         pthread_mutex_lock(&ser_lock);
@@ -237,7 +245,7 @@ int ser_do()
 
 void ser_kill()
 {
-  printf("ser killed\n");fflush(stdout);
+  ser_debug("killed\n");
   ser_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck

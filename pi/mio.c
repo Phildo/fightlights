@@ -5,6 +5,7 @@
 #include <string.h>
 #include <pthread.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "wiringSerial.h"
 
@@ -38,6 +39,16 @@ unsigned char serve;
 #endif
 unsigned char mio_btn_down[2];
 
+void mio_debug(char *fmt, ...)
+{
+  printf("MIO: ");
+  va_list myargs;
+  va_start(myargs, fmt);
+  vprintf(fmt, myargs);
+  va_end(myargs);
+  fflush(stdout);
+}
+
 #ifdef NOMIDDLEMAN
 void btn_buff_init()
 {
@@ -47,7 +58,7 @@ void btn_buff_init()
     btn_buff[i] = (byte *)malloc(sizeof(byte)*btn_buff_n+1);
     if(!btn_buff[i])
     {
-      printf("could not alloc btn buff %d\n",i);
+      mio_debug("could not alloc btn buff %d\n",i);
       exit(1);
     }
     memset(btn_buff[i],0,sizeof(byte)*btn_buff_n+1);
@@ -62,7 +73,7 @@ void mio_buff_init()
   mio_buff = (byte *)malloc(sizeof(byte)*mio_buff_n+1);
   if(!mio_buff)
   {
-    printf("could not alloc mio buff\n");
+    mio_debug("could not alloc mio buff\n");
     exit(1);
   }
   memset(mio_buff,0,sizeof(byte)*mio_buff_n+1);
@@ -159,7 +170,7 @@ void btn_pull(int i)
       else
       {
         strip_brightness = c>>1; //pot reading
-        //printf("%d\n",strip_brightness);fflush(stdout);
+        //mio_debug("%d\n",strip_brightness);
       }
     }
   }
@@ -223,7 +234,7 @@ int mio_do()
 
 void mio_kill()
 {
-  printf("mio killed\n");fflush(stdout);
+  mio_debug("killed\n");
   mio_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck

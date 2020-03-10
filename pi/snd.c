@@ -3,6 +3,7 @@
 #include <alsa/asoundlib.h>
 #include <sndfile.h>
 #include <stdio.h>
+#include <stdarg.h>
 
 #define PCM_DEVICE "default"
 
@@ -14,6 +15,16 @@ static const char *filename[] = {"test.wav","test.wav","test.wav"};
 static char **filepath;
 static SNDFILE **file;
 static SF_INFO *sfinfo;
+
+void snd_debug(char *fmt, ...)
+{
+  printf("SND: ");
+  va_list myargs;
+  va_start(myargs, fmt);
+  vprintf(fmt, myargs);
+  va_end(myargs);
+  fflush(stdout);
+}
 
 void snd_init()
 {
@@ -31,14 +42,14 @@ void snd_init()
     strcpy(filepath[i]+assets_len+1,filename[i]);
     if(!(file[i] = sf_open(filepath[i], SFM_READ, &sfinfo[i])))
     {
-      fprintf(stderr,"Failed opening sound file %s\n",filepath[i]);
+      snd_debug("Failed opening sound file %s\n",filepath[i]);
       exit(1);
     }
     /*
-    fprintf(stderr,"Channels: %d\n", sfinfo[i].channels);
-    fprintf(stderr,"Sample rate: %d\n", sfinfo[i].samplerate);
-    fprintf(stderr,"Sections: %d\n", sfinfo[i].sections);
-    fprintf(stderr,"Format: %d\n", sfinfo[i].format);
+    snd_debug("Channels: %d\n", sfinfo[i].channels);
+    snd_debug("Sample rate: %d\n", sfinfo[i].samplerate);
+    snd_debug("Sections: %d\n", sfinfo[i].sections);
+    snd_debug("Format: %d\n", sfinfo[i].format);
     */
   }
 
@@ -61,7 +72,7 @@ int snd_do()
     /* Open the PCM device in playback mode */
     if(snd_pcm_open(&pcm_handle, PCM_DEVICE, SND_PCM_STREAM_PLAYBACK, 0) != 0)
     {
-      fprintf(stderr,"Failed opening sound pcm device\n");
+      snd_debug("Failed opening sound pcm device\n");
       exit(1);
     }
 
@@ -76,7 +87,7 @@ int snd_do()
     /* Write parameters */
     if(snd_pcm_hw_params(pcm_handle, params) != 0)
     {
-      fprintf(stderr,"Failed setting pcm hw params\n");
+      snd_debug("Failed setting pcm hw params\n");
       exit(1);
     }
 
@@ -85,7 +96,7 @@ int snd_do()
     snd_pcm_uframes_t frames;
     if(snd_pcm_hw_params_get_period_size(params, &frames, &dir) != 0)
     {
-      fprintf(stderr,"Couldn't get exact period size\n");
+      snd_debug("Couldn't get exact period size\n");
       exit(1);
     }
     short* buff = NULL;
@@ -96,17 +107,17 @@ int snd_do()
       int pcmrc = snd_pcm_writei(pcm_handle, buff, readcount);
       if(pcmrc == -EPIPE)
       {
-        fprintf(stderr, "Underrun!\n"); fflush(stderr);
+        snd_debug("Underrun!\n");
         snd_pcm_prepare(pcm_handle);
       }
       else if(pcmrc < 0)
       {
-        fprintf(stderr, "Error writing to PCM device: %s\n", snd_strerror(pcmrc));
+        snd_debug("Error writing to PCM device: %s\n", snd_strerror(pcmrc));
         exit(1);
       }
       else if(pcmrc != readcount)
       {
-        fprintf(stderr,"PCM write difffers from PCM read.\n");
+        snd_debug("PCM write difffers from PCM read.\n");
         exit(1);
       }
     }
@@ -122,7 +133,7 @@ int snd_do()
 
 void snd_kill()
 {
-  printf("snd killed\n");fflush(stdout);
+  snd_debug("killed\n");
   snd_killed = 1;
   snd_play = -1;
 }

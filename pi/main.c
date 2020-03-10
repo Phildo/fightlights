@@ -4,6 +4,7 @@
 #include <pthread.h>
 #include <signal.h>
 #include <unistd.h>
+#include <stdarg.h>
 
 #include "params.h"
 #include "util.h"
@@ -41,6 +42,16 @@ pthread_cond_t mio_ser_ready_cond;
 pthread_mutex_t strip_lock;
 int strip_ready;
 pthread_cond_t strip_ready_cond;
+
+void main_debug(char *fmt, ...)
+{
+  printf("MAIN: ");
+  va_list myargs;
+  va_start(myargs, fmt);
+  vprintf(fmt, myargs);
+  va_end(myargs);
+  fflush(stdout);
+}
 
 void *pong_thread_main(void *args)
 {
@@ -146,9 +157,9 @@ void init_threads()
   int err;
 
   if(pthread_mutex_init(&ser_lock, NULL) != 0)
-  { printf("can't init ser lock\n"); exit(-1); }
+  { main_debug("can't init ser lock\n"); exit(-1); }
   if(pthread_mutex_init(&strip_lock, NULL) != 0)
-  { printf("can't init strip lock\n"); exit(-1); }
+  { main_debug("can't init strip lock\n"); exit(-1); }
 
   pthread_cond_init(&ser_requested_cond,NULL);
   pthread_cond_init(&gpu_ser_ready_cond,NULL);
@@ -163,22 +174,22 @@ void init_threads()
   pthread_cond_init(&strip_ready_cond,NULL);
 
   err = pthread_create(&pong_thread, NULL, &pong_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
+  if(err != 0) { main_debug("can't create thread: %s\n", strerror(err)); exit(-1); }
   err = pthread_create(&ser_thread, NULL, &ser_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
+  if(err != 0) { main_debug("can't create thread: %s\n", strerror(err)); exit(-1); }
   err = pthread_create(&gpu_thread, NULL, &gpu_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
+  if(err != 0) { main_debug("can't create thread: %s\n", strerror(err)); exit(-1); }
   err = pthread_create(&snd_thread, NULL, &snd_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
+  if(err != 0) { main_debug("can't create thread: %s\n", strerror(err)); exit(-1); }
   #ifdef NOMIDDLEMAN
   for(int i = 0; i < 2; i++)
   {
     err = pthread_create(&btn_thread[i], NULL, &btn_thread_main, (void *)i);
-    if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
+    if(err != 0) { main_debug("can't create thread: %s\n", strerror(err)); exit(-1); }
   }
   #else
   err = pthread_create(&mio_thread, NULL, &mio_thread_main, NULL);
-  if(err != 0) { printf("can't create thread: %s\n", strerror(err)); exit(-1); }
+  if(err != 0) { main_debug("can't create thread: %s\n", strerror(err)); exit(-1); }
   #endif
 }
 

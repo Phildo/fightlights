@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <pthread.h>
+#include <stdarg.h>
 
 #include "wiringSerial.h"
 
@@ -20,6 +21,16 @@ extern int gpu_fd;
 byte *gpu_buff;
 int gpu_buff_n;
 int gpu_buff_i;
+
+void gpu_debug(char *fmt, ...)
+{
+  printf("GPU: ");
+  va_list myargs;
+  va_start(myargs, fmt);
+  vprintf(fmt, myargs);
+  va_end(myargs);
+  fflush(stdout);
+}
 
 void gpu_buff_init()
 {

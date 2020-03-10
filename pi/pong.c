@@ -3,6 +3,7 @@
 #include <pthread.h>
 #include <stdio.h>
 #include <math.h>
+#include <stdarg.h>
 #include "util.h"
 #include "sync.h"
 
@@ -67,6 +68,16 @@ static color color_streak;
 static color color_zone;
 
 color strip_leds[STRIP_NUM_LEDS];
+
+void pong_debug(char *fmt, ...)
+{
+  printf("PONG: ");
+  va_list myargs;
+  va_start(myargs, fmt);
+  vprintf(fmt, myargs);
+  va_end(myargs);
+  fflush(stdout);
+}
 
 void pong_colors_init()
 {
@@ -151,7 +162,7 @@ void fill_virtual_range(color c, int vfrom, int vto)
 void draw_ball()
 {
   fill_virtual_range(color_streak, prev_virtual_ball_p, virtual_ball_p);
-  strip_leds[virtual_ball_p/STRIP_NUM_VIRTUAL_PER_LED] = color_ball;
+  strip_leds[ball_p] = color_ball;
 }
 
 void set_state(unsigned char s);
@@ -529,7 +540,7 @@ int pong_do()
 
 void pong_kill()
 {
-  printf("pong killed\n");fflush(stdout);
+  pong_debug("killed\n");
   pong_killed = 1;
   #ifdef MULTITHREAD
   //lie to get myself unstuck
