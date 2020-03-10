@@ -64,6 +64,12 @@ int color_cmp(color a, color b)
 }
 
 //math
+int min(int a, int b)
+{
+  if(b < a) return b;
+  return a;
+}
+
 int clamp(int v, int min, int max)
 {
   if(v < min) return min;

@@ -13,6 +13,7 @@ color mix_color(color a, color b);
 int color_cmp(color a, color b);
 
 //math
+int min(int a, int b);
 int clamp(int v, int min, int max);
 
 //timing
