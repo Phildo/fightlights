@@ -4,6 +4,7 @@
 #include <sndfile.h>
 #include <stdio.h>
 #include <stdarg.h>
+#include "util.h"
 
 #define PCM_DEVICE "default"
 
@@ -12,8 +13,8 @@ static int snd_inited = 0;
 
 static const char *assets_folder = "/home/phildo/projects/fightlights/assets";
 static int n_files;
-static const char *filename[] = {"test.wav","test.wav","test.wav"};
-static int running[]          = {    0,         0,          0    };
+static const char *filename[] = {"test.wav","blast_left.wav","blast_right.wav"};
+static int running[]          = {         0,             0,              0};
 static SNDFILE **file;
 static SF_INFO *sfinfo;
 static snd_pcm_t *pcm_handle;
@@ -22,6 +23,10 @@ static int bufflen;
 static short* read_buff;
 static short* snd_buff;
 static snd_pcm_uframes_t frames;
+static int us_per_buffer;
+static now_t tick;
+static now_t filled_t;
+static now_t remaining;
 
 void snd_debug(char *fmt, ...)
 {
@@ -88,10 +93,13 @@ void snd_init()
     snd_debug("Couldn't get exact period size\n");
     exit(1);
   }
+  us_per_buffer = frames*1000*1000/sfinfo[0].samplerate;
   bufflen = frames * sfinfo[0].channels;
   read_buff = malloc(bufflen * sizeof(short));
   snd_buff  = malloc(bufflen * sizeof(short));
 
+  tick = now();
+  remaining = 0;
   snd_killed = 0;
   snd_inited = 1;
 }
@@ -144,6 +152,33 @@ int snd_do()
       snd_debug("PCM write difffers from PCM read.\n");
       exit(1);
     }
+    filled_t += us_per_buffer*us_now_t;
+
+    //wait for buffer to pass
+    now_t test = now();
+    now_t delta = test-tick;
+    now_t target = (us_per_buffer*us_now_t)*0.25;
+    remaining = (filled_t-delta)-target;
+    if(remaining < 0) //recalibrate to "just filled"
+    {
+      filled_t = us_per_buffer*us_now_t;
+      tick = test;
+      delta = 0;
+      remaining = filled_t-target;
+    }
+    while(remaining > 0)
+    {
+      if(remaining > 3*ms_now_t) //buffer > usleep error
+      { //usleep
+        int sleep_ms = (remaining/ms_now_t)-1;
+        usleep(1000*sleep_ms);
+      }
+      test = now();
+      delta = test-tick;
+      remaining = (filled_t-delta)-target;
+    }
+    filled_t -= delta;
+    tick = test;
   }
 
   return 1;
@@ -159,6 +194,7 @@ void snd_kill()
 
 void snd_die()
 {
+  snd_inited = 0;
   snd_pcm_drain(pcm_handle);
   snd_pcm_close(pcm_handle);
   free(read_buff);

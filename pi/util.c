@@ -78,12 +78,14 @@ int clamp(int v, int min, int max)
 }
 
 //timing
+now_t us_now_t;
 now_t ms_now_t;
 now_t s_now_t;
 
 void util_init()
 {
-  ms_now_t = 1000000U;
+  us_now_t = 1000U;
+  ms_now_t = us_now_t*1000U;
   s_now_t  = ms_now_t*1000U;
 }
 

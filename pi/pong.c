@@ -17,6 +17,7 @@
 #define SCORE_T 100
 
 #define FLASH_N 20
+#define MISSILE_SPEED 3
 
 int pong_killed;
 
@@ -155,6 +156,12 @@ void set_into(color c, int i)
   strip_leds[i] = c;
 }
 
+void safe_set_into(color c, int i)
+{
+  if(i < 0 || i >= STRIP_NUM_LEDS) return;
+  set_into(c,i);
+}
+
 void mix_into(color c, int i)
 {
   strip_leds[i] = mix_color(strip_leds[i],c);
@@ -248,7 +255,7 @@ void set_state(unsigned char s)
   {
     case STATE_SIGNUP:
     {
-      snd_play(1);
+      snd_play(0);
       if(btn_a_down_t >= btn_b_down_t)
       {
         btn_a_down_t  = 1;
@@ -271,7 +278,7 @@ void set_state(unsigned char s)
       break;
     case STATE_PLAY:
     {
-      snd_play(2);
+      snd_play(0);
       if(btn_a_down_t >= btn_b_down_t)
       {
         server = 1;
@@ -293,7 +300,8 @@ void set_state(unsigned char s)
       break;
     case STATE_SCORE:
     {
-      snd_play(2);
+      if(pong_serve == 1) snd_play(1);
+      else                snd_play(2);
     }
       break;
     case STATE_DEBUG:
@@ -315,7 +323,8 @@ int pong_do()
   btn_a_down = mio_btn_down[0];
   btn_b_down = mio_btn_down[1];
 
-/*
+
+//*
   //HACK HITS
   {
     if(pong_state == STATE_SIGNUP)
@@ -330,7 +339,7 @@ int pong_do()
       else if(pong_serve == -1 && predict_ball_p <  0             +zone_a_len) btn_a_down = 1;
     }
   }
-*/
+//*/
 
   //read buttons
   if(btn_a_down) { btn_a_down_t++;   btn_a_up_t = 0; }
@@ -375,14 +384,14 @@ int pong_do()
       if(btn_a_hit_p == -1 && btn_a_down_t == 1) btn_a_hit_p = ball_p;
       if(btn_b_hit_p == -1 && btn_b_down_t == 1) btn_b_hit_p = ball_p;
 
-      if(pong_serve == -1 && btn_a_press_t < zone_a_len && ball_p <= (int)btn_a_press_t)
+      if(pong_serve == -1 && btn_a_press_t*MISSILE_SPEED < zone_a_len && ball_p <= (int)btn_a_press_t*MISSILE_SPEED)
       {
         if(ball_p < 0) { btn_a_hit_p = ball_p = 0; }
         missile_a_hit_p = ball_p;
         missile_a_hit_t = 1;
         should_bounce = 1;
       }
-      if(pong_serve == 1 && btn_b_press_t < zone_b_len && ball_p >= (int)back(btn_b_press_t))
+      if(pong_serve == 1 && btn_b_press_t*MISSILE_SPEED < zone_b_len && ball_p >= (int)back(btn_b_press_t*MISSILE_SPEED))
       {
         if(ball_p >= back(0)) { btn_b_hit_p = ball_p = back(0); }
         missile_b_hit_p = ball_p;
@@ -392,7 +401,8 @@ int pong_do()
 
       if(should_bounce)
       {
-        snd_play(0);
+        if(pong_serve == 1) snd_play(1);
+        else                snd_play(2);
         bounce++;
         speed = 10+(bounce*10/6);
              if(pong_serve == -1) { pong_serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
@@ -501,8 +511,8 @@ int pong_do()
         }
 
         //draw missiles
-        if(btn_a_press_t < zone_a_len) set_into(color_a,     btn_a_press_t );
-        if(btn_b_press_t < zone_b_len) set_into(color_b,back(btn_b_press_t));
+        if(btn_a_press_t*MISSILE_SPEED < zone_a_len) for(int i = 0; i < MISSILE_SPEED; i++) safe_set_into(color_a,     btn_a_press_t*MISSILE_SPEED -i);
+        if(btn_b_press_t*MISSILE_SPEED < zone_b_len) for(int i = 0; i < MISSILE_SPEED; i++) safe_set_into(color_b,back(btn_b_press_t*MISSILE_SPEED -i));
 
         //shrinking indicator
         if(bounce%3)
@@ -520,9 +530,9 @@ int pong_do()
         }
 
         //draw hits
-        if(btn_a_hit_p     != -1) set_into(dampen_color(color_a,0.2),btn_a_hit_p);
+        if(btn_a_hit_p     != -1) set_into(dampen_color(color_a,0.1),btn_a_hit_p);
         if(missile_a_hit_p != -1) set_into(color_a,missile_a_hit_p);
-        if(btn_b_hit_p     != -1) set_into(dampen_color(color_b,0.2),btn_b_hit_p);
+        if(btn_b_hit_p     != -1) set_into(dampen_color(color_b,0.1),btn_b_hit_p);
         if(missile_b_hit_p != -1) set_into(color_b,missile_b_hit_p);
 
         //particles
@@ -577,8 +587,8 @@ int pong_do()
         }
 
         //draw hits
-        if(pong_serve == -1 && btn_a_hit_p != -1) mix_into(color_a,btn_a_hit_p);
-        if(pong_serve ==  1 && btn_b_hit_p != -1) mix_into(color_b,btn_b_hit_p);
+        if(pong_serve == -1 && btn_a_hit_p != -1) set_into(color_a,btn_a_hit_p);
+        if(pong_serve ==  1 && btn_b_hit_p != -1) set_into(color_b,btn_b_hit_p);
 
         //draw ball
         draw_ball();

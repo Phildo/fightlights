@@ -17,7 +17,8 @@ int min(int a, int b);
 int clamp(int v, int min, int max);
 
 //timing
-typedef unsigned long long now_t;
+typedef long long now_t;
+extern now_t us_now_t;
 extern now_t ms_now_t;
 extern now_t s_now_t;
 
