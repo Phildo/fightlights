@@ -108,47 +108,43 @@ int snd_do()
 {
   if(snd_killed) { snd_die(); return 0; }
 
-  int feed;
-  do
+  memset(snd_buff,0,bufflen*sizeof(short));
+  int feed = 0;
+  for(int i = 0; i < n_files; i++)
   {
-    memset(snd_buff,0,bufflen*sizeof(short));
-    feed = 0;
-    for(int i = 0; i < n_files; i++)
+    if(running[i])
     {
-      if(running[i])
+      int readcount = sf_readf_short(file[i], read_buff, frames);
+      if(readcount)
       {
-        int readcount = sf_readf_short(file[i], read_buff, frames);
-        if(readcount)
+        for(int j = 0; j < readcount*sfinfo[0].channels; j++)
         {
-          for(int j = 0; j < readcount; j++)
-          {
-            snd_buff[j] += read_buff[j]; //TODO: actually mix!
-          }
-          if(readcount > feed) feed = readcount;
+          snd_buff[j] += read_buff[j]; //TODO: actually mix!
         }
-        else running[i] = 0;
+        if(readcount > feed) feed = readcount;
       }
+      else running[i] = 0;
     }
-    if(feed)
+  }
+  if(feed)
+  {
+    int pcmrc = snd_pcm_writei(pcm_handle, snd_buff, feed);
+    if(pcmrc == -EPIPE)
     {
-      int pcmrc = snd_pcm_writei(pcm_handle, snd_buff, feed);
-      if(pcmrc == -EPIPE)
-      {
-        //snd_debug("Underrun!\n"); //this is fine- there's no way to know if the sound is "finished playing" until it's too late (sf_readf_short returns 0)
-        snd_pcm_prepare(pcm_handle);
-      }
-      else if(pcmrc < 0)
-      {
-        snd_debug("Error writing to PCM device: %s\n", snd_strerror(pcmrc));
-        exit(1);
-      }
-      else if(pcmrc != feed)
-      {
-        snd_debug("PCM write difffers from PCM read.\n");
-        exit(1);
-      }
+      //snd_debug("Underrun!\n"); //this is fine- there's no way to know if the sound is "finished playing" until it's too late (sf_readf_short returns 0)
+      snd_pcm_prepare(pcm_handle);
     }
-  } while(feed);
+    else if(pcmrc < 0)
+    {
+      snd_debug("Error writing to PCM device: %s\n", snd_strerror(pcmrc));
+      exit(1);
+    }
+    else if(pcmrc != feed)
+    {
+      snd_debug("PCM write difffers from PCM read.\n");
+      exit(1);
+    }
+  }
 
   return 1;
 }
