@@ -1,67 +1,3 @@
-/*
-
-BEFORE:                      AFTER:
-pong_state: 1                pong_state: 1
-state_t: 3516                state_t: 3517
-speed: 68                    speed: 68
-zone_a_len: 18               zone_a_len: 18
-zone_b_len: 18               zone_b_len: 18
-prev_virtual_ball_p: 109     prev_virtual_ball_p: 41
-virtual_ball_p: 41           virtual_ball_p: -27
-prev_ball_p: 10              prev_ball_p: 4
-ball_p: 4                    ball_p: -2
-pong_serve: -1               pong_serve: -1
-server: 1                    server: 1
-bounce: 35                   bounce: 35
-mio_btn_down[0]: 0           mio_btn_down[0]: 0
-mio_btn_down[1]: 0           mio_btn_down[1]: 0
-btn_a_down: 1                btn_a_down: 1
-btn_a_down_t: 2              btn_a_down_t: 3
-btn_a_press_t: 2             btn_a_press_t: 3
-btn_a_up_t: 0                btn_a_up_t: 0
-btn_b_down: 0                btn_b_down: 0
-btn_b_down_t: 0              btn_b_down_t: 0
-btn_b_press_t: 47            btn_b_press_t: 48
-btn_b_up_t: 44               btn_b_up_t: 45
-btn_a_hit_p: 10              btn_a_hit_p: 10
-missile_a_hit_p: -1          missile_a_hit_p: -1
-missile_a_hit_t: 91          missile_a_hit_t: 92
-btn_b_hit_p: 299             btn_b_hit_p: 299
-missile_b_hit_p: 299         missile_b_hit_p: 299
-missile_b_hit_t: 45          missile_b_hit_t: 46
-
-pong_state: 1
-state_t: 4327
-speed: 106
-zone_a_len: 10
-zone_b_len: 11
-prev_virtual_ball_p: 2888
-virtual_ball_p: 2994
-prev_ball_p: 288
-ball_p: 299
-pong_serve: 1
-server: 1
-bounce: 58
-mio_btn_down[0]: 0
-mio_btn_down[1]: 0
-btn_a_down: 0
-btn_a_down_t: 0
-btn_a_press_t: 30
-btn_a_up_t: 29
-btn_b_down: 0
-btn_b_down_t: 0
-btn_b_press_t: 60
-btn_b_up_t: 59
-btn_a_hit_p: 0
-missile_a_hit_p: 0
-missile_a_hit_t: 30
-btn_b_hit_p: -1
-missile_b_hit_p: -1
-missile_b_hit_t: 60
-
-
-*/
-
 #include "pong.h"
 #include <stdlib.h>
 #include <pthread.h>
@@ -70,6 +6,7 @@ missile_b_hit_t: 60
 #include <stdarg.h>
 #include "util.h"
 #include "sync.h"
+#include "snd.h"
 
 //logic
 #define MAX_HIT_ZONE 30 //measured in real LEDs
@@ -111,7 +48,6 @@ static unsigned int missile_a_hit_t;
 static int btn_b_hit_p;
 static int missile_b_hit_p;
 static unsigned int missile_b_hit_t;
-extern int snd_play;
 
 //vis state
 //signup
@@ -312,7 +248,7 @@ void set_state(unsigned char s)
   {
     case STATE_SIGNUP:
     {
-      snd_play = 1;
+      snd_play(1);
       if(btn_a_down_t >= btn_b_down_t)
       {
         btn_a_down_t  = 1;
@@ -335,7 +271,7 @@ void set_state(unsigned char s)
       break;
     case STATE_PLAY:
     {
-      snd_play = 2;
+      snd_play(2);
       if(btn_a_down_t >= btn_b_down_t)
       {
         server = 1;
@@ -357,7 +293,7 @@ void set_state(unsigned char s)
       break;
     case STATE_SCORE:
     {
-      snd_play = 2;
+      snd_play(2);
     }
       break;
     case STATE_DEBUG:
@@ -456,7 +392,7 @@ int pong_do()
 
       if(should_bounce)
       {
-        snd_play = 0;
+        snd_play(0);
         bounce++;
         speed = 10+(bounce*10/6);
              if(pong_serve == -1) { pong_serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
