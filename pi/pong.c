@@ -324,7 +324,7 @@ int pong_do()
   btn_b_down = mio_btn_down[1];
 
 
-//*
+/*
   //HACK HITS
   {
     if(pong_state == STATE_SIGNUP)
@@ -559,31 +559,34 @@ int pong_do()
       {
         draw_base_strip();
 
+        int resolution = 10;
+        float wspeed = 0.5f;
+        float invwavelength = 0.05f;
         if(pong_serve == 1) //a scored
         {
           strip_leds[state_t%zone_a_len] = color_a;
           strip_leds[STRIP_NUM_LEDS-zone_b_len+(state_t%zone_b_len)] = color_a;
-          int body_leds = STRIP_NUM_LEDS-zone_a_len-zone_b_len+2;
-          int pulse_t = SCORE_T/10;
-          int pulse_is = zone_a_len+(( state_t   %pulse_t)*body_leds/pulse_t);
-          int pulse_ie = zone_a_len+(((state_t+1)%pulse_t)*body_leds/pulse_t);
-          if((state_t+1)%pulse_t == 0) pulse_ie = STRIP_NUM_LEDS-zone_b_len+1;
-          if(pulse_is == pulse_ie) pulse_ie++;
-          for(int i = pulse_is; i < pulse_ie; i++)
-            strip_leds[i] = color_a;
+
+          for(int i = 0; i < state_t*8 && i < STRIP_NUM_LEDS; i++)
+          {
+            float d = timed_pwave(i,wspeed,invwavelength);
+            d = 0.5+d*0.5;
+            d = floor(d*resolution)/resolution;
+            strip_leds[i] = mix_color(strip_leds[i],dampen_color(color_a,d));
+          }
         }
         else if(pong_serve == -1) //b scored
         {
           strip_leds[zone_a_len-1-(state_t%zone_a_len)] = color_b;
           strip_leds[STRIP_NUM_LEDS-1-(state_t%zone_b_len)] = color_b;
-          int body_leds = STRIP_NUM_LEDS-zone_a_len-zone_b_len+2;
-          int pulse_t = SCORE_T/10;
-          int pulse_is = zone_b_len+(( state_t   %pulse_t)*body_leds/pulse_t);
-          int pulse_ie = zone_b_len+(((state_t+1)%pulse_t)*body_leds/pulse_t);
-          if((state_t+1)%pulse_t == 0) pulse_ie = STRIP_NUM_LEDS-zone_a_len+1;
-          if(pulse_is == pulse_ie) pulse_ie++;
-          for(int i = pulse_is; i < pulse_ie; i++)
-            strip_leds[back(i)] = color_b;
+
+          for(int i = 0; i < state_t*8 && i < STRIP_NUM_LEDS; i++)
+          {
+            float d = timed_pwave(i,wspeed,invwavelength);
+            d = 0.5+d*0.5;
+            d = floor(d*resolution)/resolution;
+            strip_leds[back(i)] = mix_color(strip_leds[back(i)],dampen_color(color_b,d));
+          }
         }
 
         //draw hits
