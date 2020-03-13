@@ -255,7 +255,7 @@ void set_state(unsigned char s)
   {
     case STATE_SIGNUP:
     {
-      snd_play(0);
+      //snd_play(0);
       if(btn_a_down_t >= btn_b_down_t)
       {
         btn_a_down_t  = 1;
@@ -278,7 +278,7 @@ void set_state(unsigned char s)
       break;
     case STATE_PLAY:
     {
-      snd_play(0);
+      //snd_play(0);
       if(btn_a_down_t >= btn_b_down_t)
       {
         server = 1;
@@ -300,8 +300,8 @@ void set_state(unsigned char s)
       break;
     case STATE_SCORE:
     {
-      if(pong_serve == 1) snd_play(1);
-      else                snd_play(2);
+      if(pong_serve == -1) snd_play(1);
+      else                 snd_play(2);
     }
       break;
     case STATE_DEBUG:
@@ -401,14 +401,14 @@ int pong_do()
 
       if(should_bounce)
       {
-        if(pong_serve == 1) snd_play(1);
-        else                snd_play(2);
         bounce++;
         speed = 10+(bounce*10/6);
              if(pong_serve == -1) { pong_serve =  1; zone_a_len = MAX_HIT_ZONE-((bounce+2)/3); } //a served
         else if(pong_serve ==  1) { pong_serve = -1; zone_b_len = MAX_HIT_ZONE-((bounce+2)/3); } //b served
         if(zone_a_len < MIN_HIT_ZONE) zone_a_len = MIN_HIT_ZONE;
         if(zone_b_len < MIN_HIT_ZONE) zone_b_len = MIN_HIT_ZONE;
+        if(pong_serve == -1) snd_play(1);
+        else                 snd_play(2);
       }
       else
       {
@@ -420,6 +420,11 @@ int pong_do()
       break;
     case STATE_SCORE:
     {
+      if((state_t % SCORE_T/4) == 0)
+      {
+        if(pong_serve == -1) snd_play(1);
+        else                 snd_play(2);
+      }
       if(state_t > SCORE_T) set_state(STATE_SIGNUP);
     }
       break;

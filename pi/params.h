@@ -4,7 +4,7 @@
 typedef unsigned char byte;
 
 //strip constants
-#define STRIP_NUM_LEDS 300
+#define STRIP_NUM_LEDS 330
 #define STRIP_MAX_BRIGHTNESS 10
 
 //serial
