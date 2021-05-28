@@ -17,6 +17,7 @@
 #define SCORE_T 100
 
 #define FLASH_N 20
+//#define USE_MISSILES
 #define MISSILE_SPEED 3
 
 int pong_killed;
@@ -281,6 +282,7 @@ void set_state(unsigned char s)
       //snd_play(0);
       if(btn_a_down_t >= btn_b_down_t)
       {
+        snd_play(1);
         server = 1;
         virtual_ball_p = 0;
         prev_virtual_ball_p = virtual_ball_p;
@@ -289,6 +291,7 @@ void set_state(unsigned char s)
       }
       else
       {
+        snd_play(2);
         server = -1;
         virtual_ball_p = STRIP_NUM_VIRTUAL_LEDS-1;
         prev_virtual_ball_p = virtual_ball_p;
@@ -300,8 +303,9 @@ void set_state(unsigned char s)
       break;
     case STATE_SCORE:
     {
-      if(pong_serve == -1) snd_play(1);
-      else                 snd_play(2);
+      //just scored
+      if(pong_serve == -1) snd_play(3);
+      else                 snd_play(4);
     }
       break;
     case STATE_DEBUG:
@@ -384,14 +388,22 @@ int pong_do()
       if(btn_a_hit_p == -1 && btn_a_down_t == 1) btn_a_hit_p = ball_p;
       if(btn_b_hit_p == -1 && btn_b_down_t == 1) btn_b_hit_p = ball_p;
 
+      #ifdef USE_MISSILES
       if(pong_serve == -1 && btn_a_press_t*MISSILE_SPEED < zone_a_len && ball_p <= (int)btn_a_press_t*MISSILE_SPEED)
+      #else
+      if(pong_serve == -1 && btn_a_press_t == 1 && ball_p <= zone_a_len)
+      #endif
       {
         if(ball_p < 0) { btn_a_hit_p = ball_p = 0; }
         missile_a_hit_p = ball_p;
         missile_a_hit_t = 1;
         should_bounce = 1;
       }
+      #ifdef USE_MISSILES
       if(pong_serve == 1 && btn_b_press_t*MISSILE_SPEED < zone_b_len && ball_p >= (int)back(btn_b_press_t*MISSILE_SPEED))
+      #else
+      if(pong_serve == 1 && btn_b_press_t == 1 && ball_p >= back(zone_b_len))
+      #endif
       {
         if(ball_p >= back(0)) { btn_b_hit_p = ball_p = back(0); }
         missile_b_hit_p = ball_p;
@@ -407,6 +419,7 @@ int pong_do()
         else if(pong_serve ==  1) { pong_serve = -1; zone_b_len = MAX_HIT_ZONE-((bounce+2)/3); } //b served
         if(zone_a_len < MIN_HIT_ZONE) zone_a_len = MIN_HIT_ZONE;
         if(zone_b_len < MIN_HIT_ZONE) zone_b_len = MIN_HIT_ZONE;
+        //just bounced
         if(pong_serve == -1) snd_play(1);
         else                 snd_play(2);
       }
@@ -422,8 +435,9 @@ int pong_do()
     {
       if((state_t % SCORE_T/4) == 0)
       {
-        if(pong_serve == -1) snd_play(1);
-        else                 snd_play(2);
+        //repeating on win
+        //if(pong_serve == -1) snd_play(1);
+        //else                 snd_play(2);
       }
       if(state_t > SCORE_T) set_state(STATE_SIGNUP);
     }

@@ -13,8 +13,8 @@ static int snd_inited = 0;
 
 static const char *assets_folder = "/home/phildo/projects/fightlights/assets";
 static int n_files;
-static const char *filename[] = {"test.wav","blast_left.wav","blast_right.wav"};
-static int running[]          = {         0,             0,              0};
+static const char *filename[] = {"test.wav","blast_left.wav","blast_right.wav","die_left.wav","die_right.wav"};
+static int running[]          = {         0,               0,                0,             0,              0};
 static SNDFILE **file;
 static SF_INFO *sfinfo;
 static snd_pcm_t *pcm_handle;
